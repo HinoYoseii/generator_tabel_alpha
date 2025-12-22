@@ -3,3 +3,4 @@ output.csv
 tabele/
 Thumbs.db
 output.xlsx
+__pycache__/
