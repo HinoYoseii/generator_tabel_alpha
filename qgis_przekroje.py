@@ -1,3 +1,7 @@
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, QPushButton, QLabel, QCheckBox, QLineEdit, QApplication)
+from PyQt5.QtGui import QRegularExpressionValidator
+from PyQt5.QtCore import Qt, QRegularExpression
+
 def getLayerNames(layerType):
     """ 
     Funkcja pobiera nazwy dostępnych warstw wektorowych w projekcie o wybranej geometrii (np. linie, poligony) 
@@ -56,6 +60,9 @@ def split_lines(input_layer, lines_layer, splitOnlySelected=True):
     print(f"Rozdzielono linie przerojów na warstwie '{input_layer}' za pomocą '{lines_layer}'.")
     print(f"Liczba otrzymanych fragmentów: {split_layer.featureCount()}")
 
+    if not splitOnlySelected:
+        przekroje_layer.removeSelection()
+
 def connect_layers(input_layer, join_layer):
     """
     Funkcja łączy input_layer (podzieloną warstwę z liniami przekrojów) i join_layer (warstwę z warstwami geotechnicznymi) na podstawie lokalizacji.
@@ -111,7 +118,7 @@ def add_length_field(input_layer, field_name='length'):
     
     print(f"Dodano pole z długościami linii do '{input_layer}'")
 
-def export_layer_to_csv(input_layer, output_path):
+def export_layer_to_csv(input_layer, output_path = "przekroje_z_warunkami_geotechnicznymi.csv"):
     """
     Funkcja eksportuje atrybuty warstwy o nazwie input_layer do pliku csv do nazwie output_path.
     
@@ -136,30 +143,38 @@ def export_layer_to_csv(input_layer, output_path):
     else:
         print(f"Error exporting layer: {error}")
 
-def remove_all_memory_layers():
+def remove_created_memory_layers():
     """
     Funkcja usuwa wszytskie tymczasowe warstwy w projekcie.
     """
     project = QgsProject.instance()
-    layers_to_remove = []
+    layers_to_remove = ['warunki_split', 'warunki_split_with_length', 'przekroje_warunki_polaczone']
     
     for layer in project.mapLayers().values():
-        if layer.dataProvider().name() == 'memory':
-            layers_to_remove.append(layer.id())
+        if (layer.name() in layers_to_remove) and (layer.dataProvider().name() == 'memory'):
+            project.removeMapLayer(layer.id())
     
-    for layer_id in layers_to_remove:
-        project.removeMapLayer(layer_id)
+    print(f"Usunięto tymczasowe warstwy")
+
+def getFieldNames(input_layer):
+    """
+    Funkcja pobiera nazwy kolumn (pól) warstwy o nazwie input_layer.
     
-    print(f"Usunięto {len(layers_to_remove)} tymczasowych warstw.")
+    :param input_layer: Nazwa warstwy wektorowej w projekcie Qgis.
+    :return: Lista nazw kolumn (pól) warstwy.
+    """
+    layer = QgsProject.instance().mapLayersByName(input_layer)[0]
+    field_names = layer.fields().names()
+    return field_names
 
 class Window(QMainWindow):
 
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Tworzenie warstwy linii przekrojów z atrybutami")
+        self.setWindowTitle("Tworzenie warstwy linii przekrojów z warstwami geotechnicznymi")
 
-        self.setGeometry(500, 100, 400, 400)
+        self.setGeometry(500, 100, 600, 300)
 
         self.UiComponents()
 
@@ -178,7 +193,7 @@ class Window(QMainWindow):
         self.submit_button = QPushButton("Połącz")
         self.submit_button.clicked.connect(self.on_submit)
 
-        # Przekroje
+        # Warstwy przekrojów
         self.combo_box1 = QComboBox()
         returnLayers = getLayerNames(QgsWkbTypes.LineGeometry)
         if returnLayers:
@@ -189,12 +204,12 @@ class Window(QMainWindow):
         self.combo_box1.addItems(list1)
         form_layout.addRow("Linie przekrojów:", self.combo_box1)
 
-        # Tylko zaznaczone przekroje
-        self.selection_checkbox = QCheckBox("Połącz tylko zaznaczone przekroje", self)
+        # Połącz tylko zaznaczone przekroje
+        self.selection_checkbox = QCheckBox("Połącz tylko zaznaczone linie przekrojów", self)
         self.selection_checkbox.setChecked(True)
         form_layout.addRow("",self.selection_checkbox)
 
-        # Warstwy geotechniczne
+        # Warstwy z warstwami geotechnicznymi
         self.combo_box2 = QComboBox()
         list2 = getLayerNames(QgsWkbTypes.PolygonGeometry)
         if returnLayers:
@@ -204,8 +219,29 @@ class Window(QMainWindow):
             self.submit_button.setEnabled(False)
         self.combo_box2.addItems(list2)
         form_layout.addRow("Warunki geotechniczne:", self.combo_box2)
+
+        # Nazwa kolumny z długościami linii przekrojów
+        self.length_line_edit = QLineEdit("length")
+        self.length_line_edit.setMaxLength(20)
+        regex_column = QRegularExpression(r'^[\w\-]*$')
+        validator = QRegularExpressionValidator(regex_column)
+        self.length_line_edit.setValidator(validator)
+        self.length_line_edit.setToolTip("Nazwa kolumny może zawierać tylko litery, cyfry, podkreślenia i myślniki.")
+        self.length_line_edit.setPlaceholderText("Domyślna nazwa kolumny 'length'")
+        form_layout.addRow("Nazwa kolumny z długościami linii przekrojów:", self.length_line_edit)
+
+        # Nazwa kolumny z docelową nazwą pliku
+        self.filename_line_edit = QLineEdit("przekroje_z_warunkami_geotechnicznymi")
+        self.filename_line_edit.setMaxLength(40)
+        regex_filename = QRegularExpression(r'^[\w]*$')
+        validator = QRegularExpressionValidator(regex_filename)
+        self.filename_line_edit.setValidator(validator)
+        self.filename_line_edit.setToolTip("Nazwa pliku może zawierać tylko litery, cyfry i podkreślenia.")
+        self.filename_line_edit.setPlaceholderText("Domyślna nazwa pliku 'przekroje_z_warunkami_geotechnicznymi'")
+        form_layout.addRow("Nazwa pliku CSV do eksportu:", self.filename_line_edit)
         
         main_layout.addLayout(form_layout)
+
         # Usuń tymczasowe warstwy
         self.delete_checkbox = QCheckBox("Usuń tymczasowe warstwy powstałe w trakcie łączenia.", self)
         self.delete_checkbox.setChecked(True)
@@ -220,26 +256,29 @@ class Window(QMainWindow):
     def on_submit(self):
         layer1 = self.combo_box1.currentText()
         layer2 = self.combo_box2.currentText()
+        column_name = self.length_line_edit.text().strip()
 
         if(layer1 == layer2):
             self.result_label.setText(f"Wybrano te same warstwy, nie można ich połączyć.")
+        elif column_name in getFieldNames(layer1):
+            self.result_label.setText(f"Warstwa '{layer1}' już posiada kolumnę o nazwie '{column_name}'. Nie można przeprowadzić łączenia.\nZmień nazwę kolumny z długościami i spróbuj ponownie.")
         else:
-            self.result_label.setText(f"Wybrano warstwy:\n'{layer1}'\n'{layer2}'")
             result = split_lines(layer1, layer2, self.selection_checkbox.isChecked())
 
             if result == 0:
                 self.result_label.setText(f"Nie wybrano przekrojów.")
             else:
-                add_length_field('warunki_split')
+                self.result_label.setText(f"Trwa łączenie warstw '{layer1}' i '{layer2}'.")
+                QApplication.processEvents()
+
+                add_length_field('warunki_split', column_name)
                 connect_layers('warunki_split_with_length', layer2)
 
-                filename = 'dane.csv'
+                filename = self.filename_line_edit.text().strip()
                 export_layer_to_csv('przekroje_warunki_polaczone', filename)
-                self.result_label.setText(self.result_label.text() + f"\n\nWyeksportowano połączoną warstwę do pliku: {filename}")
+                self.result_label.setText(f"Wyeksportowano połączoną warstwę do pliku: {filename}")
 
                 if self.delete_checkbox.isChecked():
-                    remove_all_memory_layers()
+                    remove_created_memory_layers()
 
-
-            
 window = Window()
