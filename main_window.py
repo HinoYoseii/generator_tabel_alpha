@@ -3,91 +3,8 @@ import sys
 from data_processor import DataProcessor
 from column_presets import ColumnPresets
 from table_generator import TableGenerator
+from column_mapping_widget import ColumnMappingWidget
 
-class ColumnMappingWidget(QWidget):
-    """ Widget do mapowania kolumn """
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.mappings = {}
-        self.checkboxes = {}
-        self.combos = {}
-        self.layout = QVBoxLayout(self)
-        self.setup_columns([], [])
-        self.info_label.setText("")
-        
-    def setup_columns(self, preset_columns: list, input_columns: list):
-        """ Setup kolumn do mapowania kolumn wejściowych i kolumn z presetu """
-        while self.layout.count():
-            item = self.layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-        
-        self.mappings.clear()
-        self.checkboxes.clear()
-        self.combos.clear()
-        
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
-        
-        auto_columns = ColumnPresets.AUTO_COLUMNS
-        
-        for col in preset_columns:
-            # Pomija kolumny automatyczne czyli "Odległości" bo używają wartości z "Kilometraż"
-            if col in auto_columns:
-                continue
-                
-            # Tworzy group box dla każdej kolumny
-            group = QGroupBox(col)
-            group_layout = QHBoxLayout()
-            
-            # Checbox do włączania/wyłączania mapowania kolumny
-            enable_check = QCheckBox("Włącz")
-            enable_check.setChecked(True)
-            self.checkboxes[col] = enable_check
-            
-            # Combo box z kolumnami wejściowymi z CSV
-            combo = QComboBox()
-            combo.addItem("-- Wybierz kolumnę --", None)
-            for input_col in input_columns:
-                combo.addItem(input_col, input_col)
-            self.combos[col] = combo
-
-            # Połączenie sygnału checkboxa z włączaniem/wyłączaniem combo boxa
-            def make_toggle(c):
-                return lambda checked: (c.setEnabled(checked))
-            enable_check.toggled.connect(make_toggle(combo))
-
-            group_layout.addWidget(enable_check)
-            group_layout.addWidget(combo, stretch=2)
-            group.setLayout(group_layout)
-            
-            scroll_layout.addWidget(group)
-        
-        # Informacja o kolumnach automatycznych
-        if auto_columns:
-            self.info_label = QLabel(
-                f"Kolumny {auto_columns} są generowane automatycznie na podstawie innych kolumn."
-            )
-            scroll_layout.addWidget(self.info_label)
-            
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_widget)
-        self.layout.addWidget(scroll)
-    
-    def get_column_mapping(self):
-        """ Pobiera aktualne mapowanie kolumn do słownika"""
-        mapping = {}
-        for col, checkbox in self.checkboxes.items():
-            if checkbox.isChecked():
-                combo = self.combos[col]
-                selected = combo.currentData()
-                if selected:
-                    mapping[col] = selected
-        return mapping
-    
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -123,8 +40,17 @@ class MainWindow(QMainWindow):
         
         # Nr_zal
         self.nr_zal_combo = QComboBox()
+        self.nr_zal_combo.addItem("-- Wybierz kolumnę --", None)
         self.nr_zal_combo.setEnabled(False)
-        config_layout.addRow("Kolumna nr_zal:", self.nr_zal_combo)
+        self.nr_zal_combo.currentIndexChanged.connect(self.validate_process_button)
+        config_layout.addRow("Kolumna z numerami załączników/nazwami przekrojów:", self.nr_zal_combo)
+
+        # Długości odcinków
+        self.dlugosci_combo = QComboBox()
+        self.dlugosci_combo.addItem("-- Wybierz kolumnę --", None)
+        self.dlugosci_combo.setEnabled(False)
+        self.dlugosci_combo.currentIndexChanged.connect(self.validate_process_button)
+        config_layout.addRow("Kolumna z długościami odcinków:", self.dlugosci_combo)
         
         # Charakterystyka drogi
         self.charakterystyka_input = QLineEdit()
@@ -192,8 +118,15 @@ class MainWindow(QMainWindow):
                 
                 # Uzupełnij combo box z num_zal dostępnymi kolumnami
                 self.nr_zal_combo.clear()
+                self.nr_zal_combo.addItem("-- Wybierz kolumnę --", None)
                 self.nr_zal_combo.addItems(columns)
                 self.nr_zal_combo.setEnabled(True)
+
+                # Uzupełnij combo box z num_zal dostępnymi kolumnami
+                self.dlugosci_combo.clear()
+                self.dlugosci_combo.addItem("-- Wybierz kolumnę --", None)
+                self.dlugosci_combo.addItems(columns)
+                self.dlugosci_combo.setEnabled(True)
                 
                 # Włącz wybór presetu
                 self.preset_combo.setEnabled(True)
@@ -207,9 +140,9 @@ class MainWindow(QMainWindow):
         if self.processor.df is None:
             return
         if self.preset_combo.currentIndex() == 0:
-            self.column_mapping_widget.setup_columns([], [])
+            self.column_mapping_widget.setup_columns([], [], True)
             self.column_mapping_widget.info_label.setText("")
-            self.process_button.setEnabled(False)
+            self.validate_process_button()
             return
         
         preset_type = self.preset_combo.currentText()
@@ -217,27 +150,38 @@ class MainWindow(QMainWindow):
         input_columns = self.processor.get_columns()
         
         self.column_mapping_widget.setup_columns(preset_columns, input_columns)
-        self.process_button.setEnabled(True)
+        self.validate_process_button()
         
         self.status_label.setText(f"✓ Zastosowano preset {preset_type} z {len(preset_columns)} kolumnami\nUzupełnij mapowanie kolumn i kliknij 'Przetwórz dane'")
+    
+    def validate_process_button(self):
+        """Waliduje czy przycisk 'Przetwórz dane' powinien być aktywny"""
+        # Sprawdza czy wybrano preset
+        preset_selected = self.preset_combo.currentIndex() > 0
+        
+        # Sprawdza czy wybrano kolumnę z numerem załącznika
+        nr_zal_selected = self.nr_zal_combo.currentIndex() > 0
+
+        # Sprawdza czy wybrano kolumnę z długościami odcinków
+        dlugosci_selected = self.dlugosci_combo.currentIndex() > 0
+        
+        # Włącz przycisk tylko gdy oba warunki są spełnione
+        self.process_button.setEnabled(preset_selected and nr_zal_selected and dlugosci_selected)
     
     def process_data(self):
         """Przetwarza dane na podstawie mapowania kolumn"""
         try:
             nr_zal_col = self.nr_zal_combo.currentText()
+            dlugosci_col = self.dlugosci_combo.currentText()
             charakterystyka = self.charakterystyka_input.text() # TODO: zamień na combo box tak jak nr_zal gdy będzie to uzupełnione w QGIS
             column_mapping = self.column_mapping_widget.get_column_mapping()
             
             if not column_mapping:
                 QMessageBox.warning(self, "Brak mapowania", "Musisz zmapować przynajmniej jedną kolumnę")
                 return
-            
-            self.processed_df = self.processor.process_data(
-                nr_zal_col,
-                charakterystyka,
-                column_mapping
-            )
-            
+
+            self.processed_df = self.processor.process_data(nr_zal_col, charakterystyka, column_mapping)
+
             self.export_button.setEnabled(True)
             self.generate_button.setEnabled(True)
             

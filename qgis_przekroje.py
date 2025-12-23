@@ -230,7 +230,7 @@ class Window(QMainWindow):
         self.length_line_edit.setPlaceholderText("Domyślna nazwa kolumny 'length'")
         form_layout.addRow("Nazwa kolumny z długościami linii przekrojów:", self.length_line_edit)
 
-        # Nazwa kolumny z docelową nazwą pliku
+        # Nazwa pliku CSV do eksportu
         self.filename_line_edit = QLineEdit("przekroje_z_warunkami_geotechnicznymi")
         self.filename_line_edit.setMaxLength(40)
         regex_filename = QRegularExpression(r'^[\w]*$')
