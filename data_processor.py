@@ -21,7 +21,7 @@ class DataProcessor:
         return self.input_columns if self.input_columns else []
     
     @staticmethod
-    def aggregate_consecutive_with_lengths(df, column):
+    def aggregate_consecutive_with_lengths(df, column, length_column):
         """
         Sumuje kolejne parametry.
         
@@ -33,11 +33,11 @@ class DataProcessor:
             return result
         
         current_val = df[column].iloc[0]
-        current_sum = df['length'].iloc[0]
+        current_sum = df[length_column].iloc[0]
         
         for idx in range(1, len(df)):
             val = df[column].iloc[idx]
-            length = df['length'].iloc[idx]
+            length = df[length_column].iloc[idx]
             
             is_current_null = pd.isna(current_val) or current_val == ''
             is_val_null = pd.isna(val) or val == ''
@@ -56,14 +56,14 @@ class DataProcessor:
         result.append((display_val, current_sum))
         return result
     
-    def process_data(self, nr_zal_column: str,charakterystyka_value: str,column_mapping: dict) -> pd.DataFrame:
+    def process_data(self, nr_zal_column: str,charakterystyka_value: str,column_mapping: dict, length_column: str) -> pd.DataFrame:
 
         if self.df is None:
             raise ValueError("No data loaded")
         
         kilometraz_column = column_mapping.get("Kilometraż")
         
-        columns_needed = [nr_zal_column, 'length'] + [
+        columns_needed = [nr_zal_column, length_column] + [
             col for col in column_mapping.values() if col
         ]
         working_df = self.df[columns_needed].copy()
@@ -72,12 +72,12 @@ class DataProcessor:
         
         for nr_zal, group in working_df.groupby(nr_zal_column, sort=False):
             group = group.reset_index(drop=True)
-            total_length = group['length'].sum()
+            total_length = group[length_column].sum()
             
             aggregated = {}
             for output_col, input_col in column_mapping.items():
                 if input_col:
-                    aggregated[output_col] = self.aggregate_consecutive_with_lengths(group, input_col)
+                    aggregated[output_col] = self.aggregate_consecutive_with_lengths(group, input_col, length_column)
             
             if kilometraz_column:
                 aggregated["Odległości"] = aggregated.get("Kilometraż", [])

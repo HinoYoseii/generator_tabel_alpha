@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         self.nr_zal_combo.addItem("-- Wybierz kolumnę --", None)
         self.nr_zal_combo.setEnabled(False)
         self.nr_zal_combo.currentIndexChanged.connect(self.validate_process_button)
+        self.nr_zal_combo.setToolTip("Kolumna po której będą grupowane tabelki.")
         config_layout.addRow("Kolumna z numerami załączników/nazwami przekrojów:", self.nr_zal_combo)
 
         # Długości odcinków
@@ -50,7 +51,8 @@ class MainWindow(QMainWindow):
         self.dlugosci_combo.addItem("-- Wybierz kolumnę --", None)
         self.dlugosci_combo.setEnabled(False)
         self.dlugosci_combo.currentIndexChanged.connect(self.validate_process_button)
-        config_layout.addRow("Kolumna z długościami odcinków:", self.dlugosci_combo)
+        self.dlugosci_combo.setToolTip("Nazwa kolumny utworzonej w skrypcie qgis, domyślnie 'length'.")
+        config_layout.addRow("Kolumna z długościami podzielonych linii przekrojów:", self.dlugosci_combo)
         
         # Charakterystyka drogi
         self.charakterystyka_input = QLineEdit()
@@ -66,6 +68,7 @@ class MainWindow(QMainWindow):
         self.preset_combo.addItems(ColumnPresets.get_preset_types())
         self.preset_combo.setEnabled(False)
         self.preset_combo.currentIndexChanged.connect(self.apply_preset)
+        self.preset_combo.setToolTip("Wiersze tabel z wytycznych GDDKIA do DBP i DGI.")
         preset_layout.addWidget(self.preset_combo)
         config_layout.addRow("Preset kolumn:", preset_layout)
         
@@ -87,7 +90,7 @@ class MainWindow(QMainWindow):
         self.process_button.clicked.connect(self.process_data)
         self.process_button.setEnabled(False)
         
-        self.export_button = QPushButton("Eksportuj do CSV/Excel")
+        self.export_button = QPushButton("Eksportuj do CSV")
         self.export_button.clicked.connect(self.export_data)
         self.export_button.setEnabled(False)
         
@@ -129,7 +132,12 @@ class MainWindow(QMainWindow):
                 self.dlugosci_combo.setEnabled(True)
                 
                 # Włącz wybór presetu
+                self.preset_combo.setCurrentIndex(0)
                 self.preset_combo.setEnabled(True)
+
+                # Wyłącz przyciski po poprzednim pliku
+                self.export_button.setEnabled(False)
+                self.generate_button.setEnabled(False)
                 
                 self.status_label.setText(f"✓ Wczytano {len(self.processor.df)} wierszy, {len(columns)} kolumn\nWybierz preset i zmapuj kolumny")
             else:
@@ -171,6 +179,8 @@ class MainWindow(QMainWindow):
     def process_data(self):
         """Przetwarza dane na podstawie mapowania kolumn"""
         try:
+            self.status_label.setText("Przetwarzanie danych...")
+            QApplication.processEvents()
             nr_zal_col = self.nr_zal_combo.currentText()
             dlugosci_col = self.dlugosci_combo.currentText()
             charakterystyka = self.charakterystyka_input.text() # TODO: zamień na combo box tak jak nr_zal gdy będzie to uzupełnione w QGIS
@@ -180,7 +190,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Brak mapowania", "Musisz zmapować przynajmniej jedną kolumnę")
                 return
 
-            self.processed_df = self.processor.process_data(nr_zal_col, charakterystyka, column_mapping)
+            self.processed_df = self.processor.process_data(nr_zal_col, charakterystyka, column_mapping, dlugosci_col)
 
             self.export_button.setEnabled(True)
             self.generate_button.setEnabled(True)
@@ -198,11 +208,12 @@ class MainWindow(QMainWindow):
         
         try:
             self.status_label.setText("Eksportowanie danych...")
+            QApplication.processEvents()
             self.processed_df.to_csv('output.csv', index=False)
-            self.processed_df.to_excel('output.xlsx', index=False)
+            # self.processed_df.to_excel('output.xlsx', index=False)
             
-            self.status_label.setText("✓ Wyeksportowano dane do output.csv i output.xlsx")
-            QMessageBox.information(self, "Sukces", "Dane wyeksportowane do:\n- output.csv\n- output.xlsx")
+            self.status_label.setText("✓ Wyeksportowano dane do output.csv")
+            QMessageBox.information(self, "Sukces", "Dane wyeksportowane do:\n- output.csv")
             
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Błąd eksportu: {str(e)}")
@@ -215,6 +226,7 @@ class MainWindow(QMainWindow):
         
         try:
             self.status_label.setText("Generowanie tabel...")
+            QApplication.processEvents()
             nr_zal_col = self.nr_zal_combo.currentText()
             
             # Pobiera tylko włączone kolumny z mapowania
