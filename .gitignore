@@ -6,3 +6,4 @@ output.xlsx
 __pycache__/
 dane_wszystkie.csv
 przekroje_z_warunkami_geotechnicznymi.csv
+test

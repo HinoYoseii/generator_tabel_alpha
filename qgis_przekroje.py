@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, QPushButton, QLabel, QCheckBox, QLineEdit, QApplication)
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, QFileDialog)
 from PyQt5.QtGui import QRegularExpressionValidator
 from PyQt5.QtCore import Qt, QRegularExpression
 
@@ -189,37 +189,59 @@ class Window(QMainWindow):
 
         form_layout = QFormLayout()
 
+        # SEKCJA 1: WYBÓR WARSTW
+        # Nagłówek sekcji
+        section_label = QLabel("WYBÓR WARSTW")
+        section_label.setStyleSheet("font-weight: bold; color: #2c3e50;")
+        main_layout.addWidget(section_label)
+        
         # Połącz warstwy
         self.submit_button = QPushButton("Połącz")
         self.submit_button.clicked.connect(self.on_submit)
+        self.submit_button.setEnabled(False)
 
         # Warstwy przekrojów
         self.combo_box1 = QComboBox()
         returnLayers = getLayerNames(QgsWkbTypes.LineGeometry)
         if returnLayers:
-            list1 = returnLayers
+            list_line = returnLayers
         else:
-            list1 = ["Brak warstw"]
+            list_line = ["Brak warstw"]
             self.submit_button.setEnabled(False)
-        self.combo_box1.addItems(list1)
+        self.combo_box1.addItems(list_line)
         form_layout.addRow("Linie przekrojów:", self.combo_box1)
 
         # Połącz tylko zaznaczone przekroje
-        self.selection_checkbox = QCheckBox("Połącz tylko zaznaczone linie przekrojów", self)
+        self.selection_checkbox = QCheckBox("Użyj tylko zaznaczonych linii przekrojów", self)
+        self.selection_checkbox.setToolTip("Jeżeli ta opcja jest zaznaczona to tylko obecnie zaznaczone linie przekrojów zostaną połączone z warstwami geotechnicznymi. W przeciwny wypadku zostaną połączone wszystkie linie przekrojów na wybranej warstwie.")
         self.selection_checkbox.setChecked(True)
         form_layout.addRow("",self.selection_checkbox)
 
         # Warstwy z warstwami geotechnicznymi
         self.combo_box2 = QComboBox()
-        list2 = getLayerNames(QgsWkbTypes.PolygonGeometry)
+        returnLayers = getLayerNames(QgsWkbTypes.PolygonGeometry)
         if returnLayers:
-            list1 = returnLayers
+            list_polygon = returnLayers
         else:
-            list1 = ["Brak warstw"]
+            list_polygon = ["Brak warstw"]
             self.submit_button.setEnabled(False)
-        self.combo_box2.addItems(list2)
+        self.combo_box2.addItems(list_polygon)
         form_layout.addRow("Warunki geotechniczne:", self.combo_box2)
-
+        
+        main_layout.addLayout(form_layout)
+        
+        # Linia separatora
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        main_layout.addWidget(line1)
+        
+        # SEKCJA 2: USTAWIENIA EKSPORTU
+        section_label2 = QLabel("USTAWIENIA EKSPORTU")
+        section_label2.setStyleSheet("font-weight: bold; color: #2c3e50")
+        main_layout.addWidget(section_label2)
+        
+        form_layout2 = QFormLayout()
+        
         # Nazwa kolumny z długościami linii przekrojów
         self.length_line_edit = QLineEdit("length")
         self.length_line_edit.setMaxLength(20)
@@ -227,20 +249,27 @@ class Window(QMainWindow):
         validator = QRegularExpressionValidator(regex_column)
         self.length_line_edit.setValidator(validator)
         self.length_line_edit.setToolTip("Nazwa kolumny może zawierać tylko litery, cyfry, podkreślenia i myślniki.")
-        self.length_line_edit.setPlaceholderText("Domyślna nazwa kolumny 'length'")
-        form_layout.addRow("Nazwa kolumny z długościami linii przekrojów:", self.length_line_edit)
+        self.length_line_edit.setPlaceholderText("Kolumna domyślnie będzie miała nazwę 'length'")
+        form_layout2.addRow("Nazwa kolumny z długościami podzielonych linii:", self.length_line_edit)
 
         # Nazwa pliku CSV do eksportu
-        self.filename_line_edit = QLineEdit("przekroje_z_warunkami_geotechnicznymi")
-        self.filename_line_edit.setMaxLength(40)
-        regex_filename = QRegularExpression(r'^[\w]*$')
-        validator = QRegularExpressionValidator(regex_filename)
-        self.filename_line_edit.setValidator(validator)
-        self.filename_line_edit.setToolTip("Nazwa pliku może zawierać tylko litery, cyfry i podkreślenia.")
-        self.filename_line_edit.setPlaceholderText("Domyślna nazwa pliku 'przekroje_z_warunkami_geotechnicznymi'")
-        form_layout.addRow("Nazwa pliku CSV do eksportu:", self.filename_line_edit)
+        self.choose_file_path_button = QPushButton("Wybierz lokalizację i nazwę pliku eksportu")
+        self.choose_file_path_button.clicked.connect(self.chooseSaveFilePath)
+        self.path_label = QLabel("Nie wybrano lokalizacji i nazwy pliku eksportu")
+        self.path_label.setStyleSheet("font-weight: bold; color: #c00")
+        form_layout2.addRow(self.path_label, self.choose_file_path_button)
         
-        main_layout.addLayout(form_layout)
+        main_layout.addLayout(form_layout2)
+        
+        # Linia separatora
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        main_layout.addWidget(line2)
+        
+        # SEKCJA 3: OPCJE DODATKOWE
+        section_label3 = QLabel("OPCJE DODATKOWE")
+        section_label3.setStyleSheet("font-weight: bold; color: #2c3e50")
+        main_layout.addWidget(section_label3)
 
         # Usuń tymczasowe warstwy
         self.delete_checkbox = QCheckBox("Usuń tymczasowe warstwy powstałe w trakcie łączenia.", self)
@@ -261,7 +290,7 @@ class Window(QMainWindow):
         if(layer1 == layer2):
             self.result_label.setText(f"Wybrano te same warstwy, nie można ich połączyć.")
         elif column_name in getFieldNames(layer1):
-            self.result_label.setText(f"Warstwa '{layer1}' już posiada kolumnę o nazwie '{column_name}'. Nie można przeprowadzić łączenia.\nZmień nazwę kolumny z długościami i spróbuj ponownie.")
+            self.result_label.setText(f"Warstwa '{layer1}' już posiada kolumnę o nazwie '{column_name}'. Nie można przeprowadzić łączenia.\nWybierz inną nazwę kolumny z długościami linii i spróbuj ponownie.")
         else:
             result = split_lines(layer1, layer2, self.selection_checkbox.isChecked())
 
@@ -274,11 +303,30 @@ class Window(QMainWindow):
                 add_length_field('warunki_split', column_name)
                 connect_layers('warunki_split_with_length', layer2)
 
-                filename = self.filename_line_edit.text().strip()
+                filename = self.path_label.text().strip()
                 export_layer_to_csv('przekroje_warunki_polaczone', filename)
                 self.result_label.setText(f"Wyeksportowano połączoną warstwę do pliku: {filename}")
 
                 if self.delete_checkbox.isChecked():
                     remove_created_memory_layers()
+
+    def chooseSaveFilePath(self):
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Wybierz miejsce zapisu pliku CSV",
+            "",  # katalog początkowy
+            "Pliki CSV (*.csv);;Wszystkie pliki (*.*)"
+        )
+        
+        if file_path:
+            if not file_path.lower().endswith('.csv'):
+                file_path += '.csv'
+            
+            self.submit_button.setEnabled(True)
+            self.path_label.setText(file_path)
+            self.path_label.setStyleSheet("font-weight: normal; color: #000")
+            self.choose_file_path_button.setText("Zmień miejsce eksportu")
+        
+        return file_path
 
 window = Window()
