@@ -56,7 +56,7 @@ class DataProcessor:
         result.append((display_val, current_sum))
         return result
     
-    def process_data(self, nr_zal_column: str,charakterystyka_value: str,column_mapping: dict, length_column: str) -> pd.DataFrame:
+    def process_data(self, nr_zal_column: str,column_mapping: dict, length_column: str) -> pd.DataFrame:
 
         if self.df is None:
             raise ValueError("No data loaded")
@@ -87,12 +87,12 @@ class DataProcessor:
             for i in range(max_rows):
                 row = {nr_zal_column: nr_zal}
                 
-                if i == 0:
-                    row["Charakterystyka drogi"] = charakterystyka_value
-                    row["Charakterystyka drogi len"] = total_length
-                else:
-                    row["Charakterystyka drogi"] = ''
-                    row["Charakterystyka drogi len"] = ''
+                # if i == 0:
+                #     row["Charakterystyka drogi"] = charakterystyka_value
+                #     row["Charakterystyka drogi len"] = total_length
+                # else:
+                #     row["Charakterystyka drogi"] = ''
+                #     row["Charakterystyka drogi len"] = ''
                 
                 for output_col, agg_data in aggregated.items():
                     if output_col == "Odległości":

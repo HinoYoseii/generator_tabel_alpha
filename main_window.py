@@ -54,12 +54,12 @@ class MainWindow(QMainWindow):
         self.dlugosci_combo.setToolTip("Nazwa kolumny utworzonej w skrypcie qgis, domyślnie 'length'.")
         config_layout.addRow("Kolumna z długościami podzielonych linii przekrojów:", self.dlugosci_combo)
         
-        # Charakterystyka drogi
-        self.charakterystyka_input = QLineEdit()
-        self.charakterystyka_input.setText(
-            "klasa drogi: S; kategoria ruchu: KR6; długość projektowanej drogi: 14,7 km"
-        )
-        config_layout.addRow("Charakterystyka drogi:", self.charakterystyka_input)
+        # # Charakterystyka drogi
+        # self.charakterystyka_input = QLineEdit()
+        # self.charakterystyka_input.setText(
+        #     "klasa drogi: S; kategoria ruchu: KR6; długość projektowanej drogi: 14,7 km"
+        # )
+        # config_layout.addRow("Charakterystyka drogi:", self.charakterystyka_input)
         
         # Wybór presetu kolumn
         preset_layout = QHBoxLayout()
@@ -183,14 +183,14 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
             nr_zal_col = self.nr_zal_combo.currentText()
             dlugosci_col = self.dlugosci_combo.currentText()
-            charakterystyka = self.charakterystyka_input.text() # TODO: zamień na combo box tak jak nr_zal gdy będzie to uzupełnione w QGIS
+            # charakterystyka = self.charakterystyka_input.text() # TODO: zamień na combo box tak jak nr_zal gdy będzie to uzupełnione w QGIS
             column_mapping = self.column_mapping_widget.get_column_mapping()
             
             if not column_mapping:
                 QMessageBox.warning(self, "Brak mapowania", "Musisz zmapować przynajmniej jedną kolumnę")
                 return
 
-            self.processed_df = self.processor.process_data(nr_zal_col, charakterystyka, column_mapping, dlugosci_col)
+            self.processed_df = self.processor.process_data(nr_zal_col, column_mapping, dlugosci_col)
 
             self.export_button.setEnabled(True)
             self.generate_button.setEnabled(True)
