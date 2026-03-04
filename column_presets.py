@@ -9,7 +9,7 @@ class ColumnPreset:
 
 class ColumnPresets:
     """Manages column preset configurations for DGI and DBP"""
-    # TODO dorobić presenty kolumn dla tego hrydro idk, w sumie można to wywalić do pliku
+    # TODO w sumie można to wywalić do pliku
     DBP_COLUMNS = [
         "Warunki geotechniczne",
         "Warunki wodne",

@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
         # Podstawowa konfiguracja nr_zal, preset
         config_group = QGroupBox("2. Podstawowa konfiguracja")
         config_layout = QFormLayout()
-        
+
         # Nr_zal
         self.nr_zal_combo = QComboBox()
         self.nr_zal_combo.addItem("-- Wybierz kolumnę --", None)
@@ -53,6 +53,12 @@ class MainWindow(QMainWindow):
         self.dlugosci_combo.currentIndexChanged.connect(self.validate_process_button)
         self.dlugosci_combo.setToolTip("Nazwa kolumny utworzonej w skrypcie qgis, domyślnie 'length'.")
         config_layout.addRow("Kolumna z długościami podzielonych linii przekrojów:", self.dlugosci_combo)
+
+        self.skala_combo = QComboBox()
+        self.skala_combo.addItem("-- Wybierz skalę --", None)
+        self.skala_combo.setEnabled(False)
+        self.skala_combo.currentIndexChanged.connect(self.validate_process_button)
+        config_layout.addRow("Skala przekrojów:", self.skala_combo)
         
         # Wybór presetu kolumn
         preset_layout = QHBoxLayout()
@@ -61,9 +67,8 @@ class MainWindow(QMainWindow):
         self.preset_combo.addItems(ColumnPresets.get_preset_types())
         self.preset_combo.setEnabled(False)
         self.preset_combo.currentIndexChanged.connect(self.apply_preset)
-        self.preset_combo.setToolTip("Wiersze tabel z wytycznych GDDKIA do DBP i DGI.")
         preset_layout.addWidget(self.preset_combo)
-        config_layout.addRow("Preset kolumn:", preset_layout)
+        config_layout.addRow("Preset wierszy tabeli:", preset_layout)
         
         config_group.setLayout(config_layout)
         main_layout.addWidget(config_group)
@@ -123,6 +128,12 @@ class MainWindow(QMainWindow):
                 self.dlugosci_combo.addItem("-- Wybierz kolumnę --", None)
                 self.dlugosci_combo.addItems(columns)
                 self.dlugosci_combo.setEnabled(True)
+
+                # Uzupełnij combo box dostępnymi skalami z TableGenerator
+                self.skala_combo.clear()
+                self.skala_combo.addItem("-- Wybierz skalę --", None)
+                self.skala_combo.addItems(self.table_generator.get_scale_list())
+                self.skala_combo.setEnabled(True)
                 
                 # Włącz wybór presetu
                 self.preset_combo.setCurrentIndex(0)
