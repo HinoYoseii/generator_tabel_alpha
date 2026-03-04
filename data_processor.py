@@ -87,13 +87,6 @@ class DataProcessor:
             for i in range(max_rows):
                 row = {nr_zal_column: nr_zal}
                 
-                # if i == 0:
-                #     row["Charakterystyka drogi"] = charakterystyka_value
-                #     row["Charakterystyka drogi len"] = total_length
-                # else:
-                #     row["Charakterystyka drogi"] = ''
-                #     row["Charakterystyka drogi len"] = ''
-                
                 for output_col, agg_data in aggregated.items():
                     if output_col == "Odległości":
                         if i < len(agg_data):

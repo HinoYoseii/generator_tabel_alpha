@@ -9,7 +9,7 @@ class TableGenerator:
     def __init__(self, output_dir: str = "tabele", preset_columns: list = None):
         self.output_dir = output_dir
         self.preset_columns = preset_columns or []
-        self.scale = 10
+        self.scale = 2.5
         self.row_height = 40
         self.margin = 20
         self.label_width = 600
@@ -85,7 +85,7 @@ class TableGenerator:
         """Przygotowuje segmenty dla wszystkich wierszy do rysowania"""
         row_segments = {}
         
-        columns_to_draw = [("Charakterystyka drogi:", "Charakterystyka drogi")]
+        columns_to_draw = []
         
         for col in self.preset_columns:
             columns_to_draw.append((f"{col}:", col))
@@ -140,9 +140,7 @@ class TableGenerator:
             
             y += self.row_height
     
-    def _draw_text(self, draw: ImageDraw, text: str, 
-                   x: int, y: int, width: int, height: int,
-                   fill=(0, 0, 0)):
+    def _draw_text(self, draw: ImageDraw, text: str, x: int, y: int, width: int, height: int, fill=(0, 0, 0)):
         """Rysuje wyśrodkowany tekst w podanym prostokącie"""
         bbox = draw.textbbox((0, 0), text, font=self.font)
         text_width = bbox[2] - bbox[0]

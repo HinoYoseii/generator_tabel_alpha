@@ -6,11 +6,10 @@ class ColumnPreset:
     """Represents a column preset configuration"""
     name: str
     columns: List[str]
-    description: str = ""
 
 class ColumnPresets:
     """Manages column preset configurations for DGI and DBP"""
-    # TODO dorobić presenty kolumn dla tego hrydro idk
+    # TODO dorobić presenty kolumn dla tego hrydro idk, w sumie można to wywalić do pliku
     DBP_COLUMNS = [
         "Warunki geotechniczne",
         "Warunki wodne",
@@ -19,6 +18,7 @@ class ColumnPresets:
         "Poziom wzmocnienia",
         "Przydatności gruntów/skał na potrzeby budownictwa drogowego",
         "Przydatności gruntów/skał z wykopów do wykonania budowli ziemnych",
+        "Odległości",
         "Kilometraż"
     ]
     
@@ -29,11 +29,17 @@ class ColumnPresets:
         "Zagrożenia geologiczne",
         "Ocena warunków geologiczno-inżynierskich",
         "Prognoza zmian warunków geologiczno-inżynierskich",
+        "Odległości",
         "Kilometraż"
+    ]
+
+    HYDRO_COLUMNS = [
+        "Klasy podatności",
+        "Jednostka Hydrogeologiczna"
     ]
     
     # Columns that are auto-generated and shouldn't be mapped
-    AUTO_COLUMNS = ["Odległości"]
+    AUTO_COLUMNS = []
     
     @classmethod
     def get_preset(cls, preset_type: str) -> List[str]:
@@ -42,9 +48,11 @@ class ColumnPresets:
             return cls.DBP_COLUMNS.copy()
         elif preset_type == "DGI":
             return cls.DGI_COLUMNS.copy()
+        elif preset_type == "HYDRO":
+            return cls.HYDRO_COLUMNS.copy()
         return []
     
     @classmethod
     def get_preset_types(cls) -> List[str]:
         """Get available preset types"""
-        return ["DBP", "DGI"]
+        return ["DBP", "DGI", "HYDRO"]

@@ -32,10 +32,6 @@ class ColumnMappingWidget(QWidget):
         auto_columns = ColumnPresets.AUTO_COLUMNS
         
         for col in preset_columns:
-            # Pomija kolumny automatyczne czyli "Odległości" bo używają wartości z "Kilometraż"
-            if col in auto_columns:
-                continue
-                
             # Tworzy group box dla każdej kolumny
             group = QGroupBox(col)
             group_layout = QHBoxLayout()
@@ -45,12 +41,14 @@ class ColumnMappingWidget(QWidget):
             enable_check.setChecked(True)
             self.checkboxes[col] = enable_check
             
-            # Combo box z kolumnami wejściowymi z CSV
-            combo = QComboBox()
-            combo.addItem("-- Wybierz kolumnę --", None)
-            for input_col in input_columns:
-                combo.addItem(input_col, input_col)
-            self.combos[col] = combo
+            # Pomija kolumny automatyczne czyli "Odległości" bo używają wartości z "Kilometraż"
+            if col not in auto_columns:
+                # Combo box z kolumnami wejściowymi z CSV
+                combo = QComboBox()
+                combo.addItem("-- Wybierz kolumnę --", None)
+                for input_col in input_columns:
+                    combo.addItem(input_col, input_col)
+                self.combos[col] = combo
 
             # Połączenie sygnału checkboxa z włączaniem/wyłączaniem combo boxa
             def make_toggle(c):
@@ -65,7 +63,7 @@ class ColumnMappingWidget(QWidget):
         
         # Informacja o kolumnach automatycznych
         if auto_columns and not clear_info:
-            self.info_label = QLabel(f"Kolumny {auto_columns} są generowane automatycznie na podstawie innych kolumn.")
+            self.info_label = QLabel(f"Kolumny {auto_columns} są generowane automatycznie na podstawie innych kolumn więc nie wymagają przypisania.")
             scroll_layout.addWidget(self.info_label)
             
         scroll_layout.addStretch()
