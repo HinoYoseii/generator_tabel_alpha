@@ -183,17 +183,13 @@ class Window(QMainWindow):
     def UiComponents(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-
         main_layout = QVBoxLayout(central_widget)
         main_layout.setAlignment(Qt.AlignTop)
 
-        form_layout = QFormLayout()
-
         # SEKCJA 1: WYBÓR WARSTW
-        # Nagłówek sekcji
-        section_label = QLabel("WYBÓR WARSTW")
-        section_label.setStyleSheet("font-weight: bold; color: #2c3e50;")
-        main_layout.addWidget(section_label)
+        layers_group = QGroupBox("Wybór warstw") #type: ignore
+        layers_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        layers_layout = QFormLayout(layers_group)
         
         # Połącz warstwy
         self.submit_button = QPushButton("Połącz")
@@ -202,45 +198,38 @@ class Window(QMainWindow):
 
         # Warstwy przekrojów
         self.combo_box1 = QComboBox()
-        returnLayers = getLayerNames(QgsWkbTypes.LineGeometry) # type: ignore
+        returnLayers = getLayerNames(QgsWkbTypes.LineGeometry) #type: ignore
         if returnLayers:
             list_line = returnLayers
         else:
             list_line = ["Brak warstw"]
             self.submit_button.setEnabled(False)
         self.combo_box1.addItems(list_line)
-        form_layout.addRow("Linie przekrojów:", self.combo_box1)
+        layers_layout.addRow("Linie przekrojów:", self.combo_box1)
 
         # Połącz tylko zaznaczone przekroje
         self.selection_checkbox = QCheckBox("Użyj tylko zaznaczonych linii przekrojów", self)
-        self.selection_checkbox.setToolTip("Jeżeli ta opcja jest zaznaczona to tylko obecnie zaznaczone linie przekrojów zostaną połączone z warstwami geotechnicznymi. W przeciwny wypadku zostaną połączone wszystkie linie przekrojów na wybranej warstwie.")
+        self.selection_checkbox.setToolTip("Jeżeli ta opcja jest zaznaczona to tylko obecnie zaznaczone linie przekrojów zostaną połączone z warstwami geotechnicznymi. W przeciwny wypadek zostaną połączone wszystkie linie przekrojów na wybranej warstwie.")
         self.selection_checkbox.setChecked(True)
-        form_layout.addRow("",self.selection_checkbox)
+        layers_layout.addRow("", self.selection_checkbox)
 
         # Warstwy z warstwami geotechnicznymi
         self.combo_box2 = QComboBox()
-        returnLayers = getLayerNames(QgsWkbTypes.PolygonGeometry) # type: ignore
+        returnLayers = getLayerNames(QgsWkbTypes.PolygonGeometry) #type: ignore
         if returnLayers:
             list_polygon = returnLayers
         else:
             list_polygon = ["Brak warstw"]
             self.submit_button.setEnabled(False)
         self.combo_box2.addItems(list_polygon)
-        form_layout.addRow("Warunki geotechniczne:", self.combo_box2)
+        layers_layout.addRow("Warunki geotechniczne:", self.combo_box2)
         
-        main_layout.addLayout(form_layout)
-        
-        # Linia separatora
-        line1 = QFrame() # type: ignore
-        line1.setFrameShape(QFrame.HLine) # type: ignore
-        main_layout.addWidget(line1)
-        
+        main_layout.addWidget(layers_group)
+
         # SEKCJA 2: USTAWIENIA EKSPORTU
-        section_label2 = QLabel("USTAWIENIA EKSPORTU")
-        section_label2.setStyleSheet("font-weight: bold; color: #2c3e50")
-        main_layout.addWidget(section_label2)
-        
-        form_layout2 = QFormLayout()
+        export_group = QGroupBox("Ustawienia eksportu") #type: ignore
+        export_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        export_layout = QFormLayout(export_group)
         
         # Nazwa kolumny z długościami linii przekrojów
         self.length_line_edit = QLineEdit("length")
@@ -249,35 +238,33 @@ class Window(QMainWindow):
         validator = QRegularExpressionValidator(regex_column)
         self.length_line_edit.setValidator(validator)
         self.length_line_edit.setToolTip("Nazwa kolumny może zawierać tylko litery, cyfry, podkreślenia i myślniki.")
-        self.length_line_edit.setPlaceholderText("Kolumna domyślnie będzie miała nazwę 'length'")
-        form_layout2.addRow("Nazwa kolumny z długościami podzielonych linii:", self.length_line_edit)
+        self.length_line_edit.setPlaceholderText("Domyślna nazwa kolumny 'length'")
+        export_layout.addRow("Nazwa kolumny z długościami podzielonych linii:", self.length_line_edit)
 
         # Nazwa pliku CSV do eksportu
-        self.choose_file_path_button = QPushButton("Wybierz lokalizację i nazwę pliku eksportu")
+        self.choose_file_path_button = QPushButton("Wybierz miejsce zapisu")
         self.choose_file_path_button.clicked.connect(self.chooseSaveFilePath)
-        self.path_label = QLabel("Nie wybrano lokalizacji i nazwy pliku eksportu")
+        self.path_label = QLabel("Nie wybrano miejsca zapisu")
         self.path_label.setStyleSheet("font-weight: bold; color: #c00")
-        form_layout2.addRow(self.path_label, self.choose_file_path_button)
+        export_layout.addRow(self.path_label, self.choose_file_path_button)
         
-        main_layout.addLayout(form_layout2)
-        
-        # Linia separatora
-        line2 = QFrame() # type: ignore
-        line2.setFrameShape(QFrame.HLine) # type: ignore
-        main_layout.addWidget(line2)
-        
-        # SEKCJA 3: OPCJE DODATKOWE
-        section_label3 = QLabel("OPCJE DODATKOWE")
-        section_label3.setStyleSheet("font-weight: bold; color: #2c3e50")
-        main_layout.addWidget(section_label3)
+        main_layout.addWidget(export_group)
+
+        # SEKCJA 3: ŁĄCZENIE WARSTW
+        connect_group = QGroupBox("Łączenie warstw") #type: ignore
+        connect_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        group_layout3 = QVBoxLayout(connect_group)
 
         # Usuń tymczasowe warstwy
         self.delete_checkbox = QCheckBox("Usuń tymczasowe warstwy powstałe w trakcie łączenia.", self)
         self.delete_checkbox.setChecked(True)
-        main_layout.addWidget(self.delete_checkbox)
+        group_layout3.addWidget(self.delete_checkbox)
 
-        main_layout.addWidget(self.submit_button)
+        group_layout3.addWidget(self.submit_button)
+        
+        main_layout.addWidget(connect_group)
 
+        # Result label
         self.result_label = QLabel("")
         self.result_label.setWordWrap(True)
         main_layout.addWidget(self.result_label)
@@ -312,7 +299,7 @@ class Window(QMainWindow):
 
                 if self.delete_checkbox.isChecked():
                     remove_created_memory_layers()
-                    
+
             self.submit_button.setEnabled(True)
 
     def chooseSaveFilePath(self):
