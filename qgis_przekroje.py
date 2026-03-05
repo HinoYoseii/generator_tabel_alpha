@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, QFileDialog)
-from PyQt5.QtGui import QRegularExpressionValidator
-from PyQt5.QtCore import Qt, QRegularExpression
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, QFileDialog) # type: ignore
+from PyQt5.QtGui import QRegularExpressionValidator # type: ignore
+from PyQt5.QtCore import Qt, QRegularExpression # type: ignore
 
 def getLayerNames(layerType):
     """ 
@@ -10,9 +10,9 @@ def getLayerNames(layerType):
     :return: Lista nazw warstw spełniających o typie layerType.
     """
     layers = []
-    for layer in QgsProject.instance().mapLayers().values():
+    for layer in QgsProject.instance().mapLayers().values(): # type: ignore
         type = layerType
-        if layer.type() == QgsMapLayer.VectorLayer:
+        if layer.type() == QgsMapLayer.VectorLayer: # type: ignore
             if layer.geometryType() == type:
                 layers.append(layer.name())
     return layers
@@ -28,8 +28,8 @@ def split_lines(input_layer, lines_layer, splitOnlySelected=True):
     :param splitOnlySelected: True/False określa czy podzielone mają być tylko obecnie zaznaczone przekroje.
     :return: Jeżeli splitOnlySelected to True, a żadne przekroje nie są zaznaczone to zwraca 0.
     """
-    przekroje_layer = QgsProject.instance().mapLayersByName(input_layer)[0]
-    warunki_layer = QgsProject.instance().mapLayersByName(lines_layer)[0]
+    przekroje_layer = QgsProject.instance().mapLayersByName(input_layer)[0] # type: ignore
+    warunki_layer = QgsProject.instance().mapLayersByName(lines_layer)[0] # type: ignore
 
     if not splitOnlySelected:
         przekroje_layer.selectAll()
@@ -42,12 +42,12 @@ def split_lines(input_layer, lines_layer, splitOnlySelected=True):
     
     print(f"Liczba wybranych przekrojów: {len(selected_features)}")
     
-    selected_layer = processing.run("native:saveselectedfeatures", {
+    selected_layer = processing.run("native:saveselectedfeatures", { # type: ignore
         'INPUT': przekroje_layer,
         'OUTPUT': 'memory:'
     })['OUTPUT']
     
-    result = processing.run("native:splitwithlines", {
+    result = processing.run("native:splitwithlines", { # type: ignore
         'INPUT': selected_layer,
         'LINES': warunki_layer,
         'OUTPUT': 'memory:Split_Result'
@@ -55,7 +55,7 @@ def split_lines(input_layer, lines_layer, splitOnlySelected=True):
 
     split_layer = result['OUTPUT']
     split_layer.setName('warunki_split')
-    QgsProject.instance().addMapLayer(split_layer)
+    QgsProject.instance().addMapLayer(split_layer) # type: ignore
     
     print(f"Rozdzielono linie przerojów na warstwie '{input_layer}' za pomocą '{lines_layer}'.")
     print(f"Liczba otrzymanych fragmentów: {split_layer.featureCount()}")
@@ -72,10 +72,10 @@ def connect_layers(input_layer, join_layer):
     :param input_layer: Nazwa warstwy wektorowej z obiektami w postaci linii z liniami przekrojów podzielonymi według join_layer.
     :param join_layer: Nazwa warstwy wektorowej z obiektami w postaci poligonów z warunkami geotechnicznymi.
     """
-    przekroje_layer = QgsProject.instance().mapLayersByName(input_layer)[0]
-    warunki_layer = QgsProject.instance().mapLayersByName(join_layer)[0]
+    przekroje_layer = QgsProject.instance().mapLayersByName(input_layer)[0] # type: ignore
+    warunki_layer = QgsProject.instance().mapLayersByName(join_layer)[0] # type: ignore
 
-    result = processing.run("native:joinattributesbylocation", {
+    result = processing.run("native:joinattributesbylocation", { # type: ignore
         'INPUT':przekroje_layer,
         'PREDICATE':[0],
         'JOIN':warunki_layer,
@@ -88,7 +88,7 @@ def connect_layers(input_layer, join_layer):
     
     combined_layer = result['OUTPUT']
     combined_layer.setName('przekroje_warunki_polaczone')
-    QgsProject.instance().addMapLayer(combined_layer)
+    QgsProject.instance().addMapLayer(combined_layer) # type: ignore
 
     print(f"Połączono warstwy '{input_layer}' i '{join_layer}'.")
 
@@ -100,9 +100,9 @@ def add_length_field(input_layer, field_name='length'):
     :param input_layer: Nazwa warstwy wektorowej z obiektami w postaci linii z liniami przekrojów.
     :param field_name: Nazwa kolumny z długościami, którą tworzy funkcja.
     """
-    layer = QgsProject.instance().mapLayersByName(input_layer)[0]
-    
-    result = processing.run("qgis:fieldcalculator", {
+    layer = QgsProject.instance().mapLayersByName(input_layer)[0] # type: ignore
+     
+    result = processing.run("qgis:fieldcalculator", { # type: ignore
         'INPUT': layer,
         'FIELD_NAME': field_name,
         'FIELD_TYPE': 1, # int
@@ -114,7 +114,7 @@ def add_length_field(input_layer, field_name='length'):
     
     output_layer = result['OUTPUT']
     output_layer.setName(f'{input_layer}_with_length')
-    QgsProject.instance().addMapLayer(output_layer)
+    QgsProject.instance().addMapLayer(output_layer) # type: ignore
     
     print(f"Dodano pole z długościami linii do '{input_layer}'")
 
@@ -125,20 +125,20 @@ def export_layer_to_csv(input_layer, output_path = "przekroje_z_warunkami_geotec
     :param input_layer: Nazwa warstwy do eksportu.
     :param output_path: Nazwa pod jaką ma być zapisany wyeksportowany plik.
     """
-    layer = QgsProject.instance().mapLayersByName(input_layer)[0]
+    layer = QgsProject.instance().mapLayersByName(input_layer)[0] # type: ignore
     
-    save_options = QgsVectorFileWriter.SaveVectorOptions()
+    save_options = QgsVectorFileWriter.SaveVectorOptions() # type: ignore
     save_options.driverName = "CSV"
     save_options.fileEncoding = "UTF-8"
     
-    error = QgsVectorFileWriter.writeAsVectorFormatV3(
+    error = QgsVectorFileWriter.writeAsVectorFormatV3( # type: ignore
         layer,
         output_path,
-        QgsProject.instance().transformContext(),
+        QgsProject.instance().transformContext(), # type: ignore
         save_options
     )
     
-    if error[0] == QgsVectorFileWriter.NoError:
+    if error[0] == QgsVectorFileWriter.NoError: # type: ignore
         print(f"Warstwa '{input_layer}' wyeksportowana do: {output_path}")
     else:
         print(f"Error exporting layer: {error}")
@@ -147,7 +147,7 @@ def remove_created_memory_layers():
     """
     Funkcja usuwa wszytskie tymczasowe warstwy w projekcie.
     """
-    project = QgsProject.instance()
+    project = QgsProject.instance() # type: ignore
     layers_to_remove = ['warunki_split', 'warunki_split_with_length', 'przekroje_warunki_polaczone']
     
     for layer in project.mapLayers().values():
@@ -163,7 +163,7 @@ def getFieldNames(input_layer):
     :param input_layer: Nazwa warstwy wektorowej w projekcie Qgis.
     :return: Lista nazw kolumn (pól) warstwy.
     """
-    layer = QgsProject.instance().mapLayersByName(input_layer)[0]
+    layer = QgsProject.instance().mapLayersByName(input_layer)[0] # type: ignore
     field_names = layer.fields().names()
     return field_names
 
@@ -202,7 +202,7 @@ class Window(QMainWindow):
 
         # Warstwy przekrojów
         self.combo_box1 = QComboBox()
-        returnLayers = getLayerNames(QgsWkbTypes.LineGeometry)
+        returnLayers = getLayerNames(QgsWkbTypes.LineGeometry) # type: ignore
         if returnLayers:
             list_line = returnLayers
         else:
@@ -219,7 +219,7 @@ class Window(QMainWindow):
 
         # Warstwy z warstwami geotechnicznymi
         self.combo_box2 = QComboBox()
-        returnLayers = getLayerNames(QgsWkbTypes.PolygonGeometry)
+        returnLayers = getLayerNames(QgsWkbTypes.PolygonGeometry) # type: ignore
         if returnLayers:
             list_polygon = returnLayers
         else:
@@ -231,8 +231,8 @@ class Window(QMainWindow):
         main_layout.addLayout(form_layout)
         
         # Linia separatora
-        line1 = QFrame()
-        line1.setFrameShape(QFrame.HLine)
+        line1 = QFrame() # type: ignore
+        line1.setFrameShape(QFrame.HLine) # type: ignore
         main_layout.addWidget(line1)
         
         # SEKCJA 2: USTAWIENIA EKSPORTU
@@ -262,8 +262,8 @@ class Window(QMainWindow):
         main_layout.addLayout(form_layout2)
         
         # Linia separatora
-        line2 = QFrame()
-        line2.setFrameShape(QFrame.HLine)
+        line2 = QFrame() # type: ignore
+        line2.setFrameShape(QFrame.HLine) # type: ignore
         main_layout.addWidget(line2)
         
         # SEKCJA 3: OPCJE DODATKOWE
@@ -283,14 +283,17 @@ class Window(QMainWindow):
         main_layout.addWidget(self.result_label)
 
     def on_submit(self):
+        self.submit_button.setEnabled(False)
         layer1 = self.combo_box1.currentText()
         layer2 = self.combo_box2.currentText()
         column_name = self.length_line_edit.text().strip()
 
         if(layer1 == layer2):
             self.result_label.setText(f"Wybrano te same warstwy, nie można ich połączyć.")
+            self.submit_button.setEnabled(True)
         elif column_name in getFieldNames(layer1):
             self.result_label.setText(f"Warstwa '{layer1}' już posiada kolumnę o nazwie '{column_name}'. Nie można przeprowadzić łączenia.\nWybierz inną nazwę kolumny z długościami linii i spróbuj ponownie.")
+            self.submit_button.setEnabled(True)
         else:
             result = split_lines(layer1, layer2, self.selection_checkbox.isChecked())
 
@@ -309,6 +312,8 @@ class Window(QMainWindow):
 
                 if self.delete_checkbox.isChecked():
                     remove_created_memory_layers()
+                    
+            self.submit_button.setEnabled(True)
 
     def chooseSaveFilePath(self):
         file_path, _ = QFileDialog.getSaveFileName(
