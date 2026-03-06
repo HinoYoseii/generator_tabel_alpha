@@ -6,36 +6,21 @@ import os
 
 class TableGenerator:
     
-    def __init__(self, output_dir: str = "tabele", preset_columns: list = None, selected_scale = "1:2500"):
+    def __init__(self, output_dir: str = "tabele", preset_columns: list = None,selected_scale = "1:2500"):
         self.output_dir = output_dir
         self.preset_columns = preset_columns or []
+        self.background_color_map = {}
+        self.text_color_map = {}
         self.row_height = 40
         self.margin = 20
         self.label_width = 600
         self.font_size = 18
-        
-        # Kolory dla określonych wartości
-        self.color_map = {
-            "Proste": (0, 150, 0),
-            "Złożone": (255, 140, 0),
-            "Skomplikowane": (200, 0, 0),
-            "dobre": (0, 150, 0),
-            "przeciętne": (255, 140, 0),
-            "złe": (200, 0, 0)
-        }
-
-        self.klasy_color_map = {
-            "A1": (215, 25, 28),
-            "A2": (245, 144, 83),
-            "B": (254, 223, 154),
-            "C": (219, 240, 158),
-            "D": (138, 204, 98)
-        }
 
         self.scale_map = {
             "1:1000":10,
             "1:2500":4
         }
+
         self.scale = self.scale_map.get(selected_scale, 10)
         
         os.makedirs(output_dir, exist_ok=True)
@@ -97,6 +82,11 @@ class TableGenerator:
         """Ustawia kolumny presetu do użycia przy generowaniu tabeli"""
         self.preset_columns = preset_columns
     
+    def set_color_maps(self, background_color:dict, text_color: dict):
+        self.background_color_map = background_color
+        self.text_color_map = text_color
+        print(background_color, text_color)
+    
     def _prepare_row_segments(self, group_df: pd.DataFrame) -> Dict[str, List[Tuple[str, float]]]:
         """Przygotowuje segmenty dla wszystkich wierszy do rysowania"""
         row_segments = {}
@@ -143,10 +133,10 @@ class TableGenerator:
                 
                 width_px = int(length * self.scale)
                 
-                backgroud_color = self.klasy_color_map.get(name, (255, 255, 255))
-                draw.rectangle([x, y, x + width_px, y + self.row_height], outline="black", fill=backgroud_color, width=1)
+                background_color = self.background_color_map.get(name, (255, 255, 255))
+                draw.rectangle([x, y, x + width_px, y + self.row_height], outline="black", fill=background_color, width=1)
                 
-                text_color = self.color_map.get(name, (0, 0, 0))
+                text_color = self.text_color_map.get(name, (0, 0, 0))
                 self._draw_text(draw, str(name), x, y, width_px, self.row_height, fill=text_color)
                 
                 x += width_px

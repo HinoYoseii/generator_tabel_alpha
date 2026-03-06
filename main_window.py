@@ -13,6 +13,7 @@ class MainWindow(QMainWindow):
         
         self.processor = DataProcessor()
         self.table_generator = TableGenerator()
+        self.presets_manager = ColumnPresets()
         self.processed_df = None
         
         self.setup_ui()
@@ -64,7 +65,7 @@ class MainWindow(QMainWindow):
         preset_layout = QHBoxLayout()
         self.preset_combo = QComboBox()
         self.preset_combo.addItem("-- Wybierz preset --", None)
-        self.preset_combo.addItems(ColumnPresets.get_preset_types())
+        self.preset_combo.addItems(self.presets_manager.get_preset_names())
         self.preset_combo.setEnabled(False)
         self.preset_combo.currentIndexChanged.connect(self.apply_preset)
         preset_layout.addWidget(self.preset_combo)
@@ -158,7 +159,7 @@ class MainWindow(QMainWindow):
             return
         
         preset_type = self.preset_combo.currentText()
-        preset_columns = ColumnPresets.get_preset(preset_type)
+        preset_columns = self.presets_manager.get_preset_columns(preset_type)
         input_columns = self.processor.get_columns()
         
         self.column_mapping_widget.setup_columns(preset_columns, input_columns)
@@ -238,18 +239,17 @@ class MainWindow(QMainWindow):
                 if checkbox.isChecked()
             ]
             
-            # Jeżeli włączony jest "Kilometraż" dodaje wcześniej "Odległości"
-            if "Kilometraż" in enabled_columns and "Odległości" not in enabled_columns:
-                km_index = enabled_columns.index("Kilometraż")
-                enabled_columns.insert(km_index,"Odległości")
-            
             # Ustawia kolumny w generatorze tabel na te wybrane z presetu przez użytkownika
             self.table_generator.set_preset_columns(enabled_columns)
+
+            preset_name = self.preset_combo.currentText()
+            background_colors_map, text_colors_map = self.presets_manager.get_style_maps(preset_name=preset_name)
+            self.table_generator.set_color_maps(background_colors_map, text_colors_map)
             
             # Wywołanie generatora
             files = self.table_generator.generate_all_tables(self.processed_df, nr_zal_col)
             
-            self.status_label.setText(f"✓ Wygenerowano {len(files)} tabel w folderze 'tabele/'")
+            self.status_label.setText(f"Wygenerowano {len(files)} tabel w folderze 'tabele/'")
             QMessageBox.information(self, "Sukces", f"Wygenerowano {len(files)} tabel w folderze 'tabele/'")
             
         except Exception as e:
