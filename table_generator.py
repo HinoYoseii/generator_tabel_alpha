@@ -6,25 +6,22 @@ import os
 
 class TableGenerator:
     
-    def __init__(self, output_dir: str = "tabele", preset_columns: list = None, selected_scale = "1:2500", selected_label_width = 600):
-        self.output_dir = output_dir
-        self.preset_columns = preset_columns or []
-        self.background_color_map = {}
-        self.text_color_map = {}
+    def __init__(self):
+        self.output_dir = "tabele"
+        self.preset_columns = []
         self.row_height = 40
         self.margin = 20
-        self.label_width = selected_label_width
+        self.label_width = 300
         self.font_size = 18
+        self.scale = 10
+        self.font = self._load_font()
 
+        self.background_color_map = {}
+        self.text_color_map = {}
         self.scale_map = {
             "1:1000":10,
             "1:2500":4
         }
-
-        self.scale = self.scale_map.get(selected_scale, 10)
-        
-        os.makedirs(output_dir, exist_ok=True)
-        self.font = self._load_font()
     
     def get_scale_list(self) -> List[str]:
         return list(self.scale_map.keys()) if self.scale_map else []
@@ -37,7 +34,7 @@ class TableGenerator:
             try:
                 return ImageFont.truetype("DejaVuSans.ttf", self.font_size)
             except:
-                print("Uwaga: Nie udało się załadować wybranej czcionkifont nie obsługuje polskich znaków!")
+                print("Uwaga: Nie udało się załadować wybranej czcionki.")
                 return ImageFont.load_default()
     
     @staticmethod
@@ -73,7 +70,7 @@ class TableGenerator:
         self._draw_rows(draw, row_segments, max_width)
         
         safe_nr_zal = str(nr_zal_value).replace('.', '_').replace('/', '_')
-        filename = os.path.join(self.output_dir, f"tabela_{safe_nr_zal}.jpg")
+        filename = os.path.join(self.output_dir, f"{safe_nr_zal}.jpg")
         img.save(filename, quality=95)
         
         return filename
@@ -158,7 +155,8 @@ class TableGenerator:
     
     def generate_all_tables(self, df: pd.DataFrame, nr_zal_column: str) -> List[str]:
         generated_files = []
-        
+        os.makedirs(self.output_dir, exist_ok=True)
+
         for nr_zal, group in df.groupby(nr_zal_column, sort=False):
             try:
                 filename = self.generate_table(group, nr_zal)
