@@ -67,8 +67,8 @@ class MainWindow(QMainWindow):
         self.preset_combo.addItems(self.presets_manager.get_preset_names())
         self.preset_combo.setEnabled(False)
         self.preset_combo.currentIndexChanged.connect(self.apply_preset)
-        config_layout.addRow("Preset wierszy tabeli:", self.preset_combo)
 
+        config_layout.addRow("Preset wierszy tabeli:", self.preset_combo)
         
         config_group.setLayout(config_layout)
         main_layout.addWidget(config_group)
@@ -143,9 +143,9 @@ class MainWindow(QMainWindow):
                 self.export_button.setEnabled(False)
                 self.generate_button.setEnabled(False)
                 
-                self.status_label.setText(f"✓ Wczytano {len(self.processor.df)} wierszy, {len(columns)} kolumn\nWybierz preset i zmapuj kolumny")
+                self.status_label.setText(f"Wczytano {len(self.processor.df)} wierszy, {len(columns)} kolumn\nWybierz preset i zmapuj kolumny")
             else:
-                self.status_label.setText("✗ Błąd wczytywania pliku")
+                self.status_label.setText("Błąd wczytywania pliku")
     
     def apply_preset(self):
         """ Pobiera i stosuje wybrany preset kolumn """
@@ -198,10 +198,10 @@ class MainWindow(QMainWindow):
             self.export_button.setEnabled(True)
             self.generate_button.setEnabled(True)
             
-            self.status_label.setText(f"✓ Przetworzono dane: {len(self.processed_df)} wierszy\nMożesz eksportować lub generować tabele")
+            self.status_label.setText(f"Przetworzono dane: {len(self.processed_df)} wierszy\nMożesz eksportować lub generować tabele")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Błąd przetwarzania: {str(e)}")
-            self.status_label.setText(f"✗ Błąd: {str(e)}")
+            self.status_label.setText(f"Błąd: {str(e)}")
     
     def export_data(self):
         """Eksportuje przetworzone dane do CSV i Excel"""

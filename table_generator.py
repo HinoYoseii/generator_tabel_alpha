@@ -85,7 +85,6 @@ class TableGenerator:
     def set_color_maps(self, background_color:dict, text_color: dict):
         self.background_color_map = background_color
         self.text_color_map = text_color
-        print(background_color, text_color)
     
     def set_label_width(self, selected_label_width:int):
         self.label_width = selected_label_width

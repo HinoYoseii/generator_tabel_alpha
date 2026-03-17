@@ -1,10 +1,12 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, QFileDialog) # type: ignore
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, # type: ignore
+                            QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, 
+                            QFileDialog, QGroupBox, QHBoxLayout, QScrollArea, QFrame) # type: ignore
 from PyQt5.QtGui import QRegularExpressionValidator # type: ignore
 from PyQt5.QtCore import Qt, QRegularExpression # type: ignore
 
 def get_layer_names(layerType):
     """ 
-    Funkcja pobiera nazwy dostępnych warstw wektorowych w projekcie o wybranej geometrii (np. linie, poligony) 
+    Funkcja pobiera nazwy dostępnych warstw wektorowych w projekcie o wybranej geometrii 
     
     :param layerType: Jeden z dostępnych typów geometrii QgsWkbTypes: PointGeometry, LineGeometry, PolygonGeometry, UnknownGeometry, NullGeometry.
     :return: Lista nazw warstw o typie layerType.
@@ -27,19 +29,48 @@ def get_layer_field_names(line_layer_name):
     layer = QgsProject.instance().mapLayersByName(line_layer_name)[0] # type: ignore
     return layer.fields().names()
 
-def split_lines(line_layer_name, polygon_layer_name, splitOnlySelected=True):
+def merge_polygon_layers(polygon_layer_names):
+    """
+    Funkcja łączy wiele warstw poligonowych w jedną warstwę.
+    
+    :param polygon_layer_names: Lista nazw warstw poligonowych do połączenia.
+    :return: Połączona warstwa poligonowa.
+    """
+    # Jeżeli została wybrana tylko jedna warstwa z poligonami to od razu ją zwraca
+    if len(polygon_layer_names) == 1:
+        return QgsProject.instance().mapLayersByName(polygon_layer_names[0])[0] # type: ignore
+    
+    # W przeciwnym wypadku łączy wszystkie warstwy poligonowe
+    polygon_layers = []
+    for name in polygon_layer_names:
+        layer = QgsProject.instance().mapLayersByName(name)[0] # type: ignore
+        polygon_layers.append(layer)
+    
+    result = processing.run("native:mergevectorlayers", { # type: ignore
+        'LAYERS': polygon_layers,
+        'CRS': None,
+        'OUTPUT': 'memory:merged_polygons'
+    })
+    
+    merged_layer = result['OUTPUT']
+    merged_layer.setName('merged_polygons_temp')
+    QgsProject.instance().addMapLayer(merged_layer) # type: ignore
+    
+    print(f"Połączono {len(polygon_layer_names)} warstw poligonowych w jedną.")
+    return merged_layer
+
+def split_lines(line_layer_name, merged_polygon_layer, splitOnlySelected=True):
     """ 
     Funkcja dzieli warstwę o nazwie line_layer_name na odcinki. 
-    Przecięcia są wykonywane w miejscach intersekcji z krańcami poligonów warstwy o nazwie polygon_layer_name.
+    Przecięcia są wykonywane w miejscach intersekcji z krańcami połączonej warstwy poligonowej.
     Tworzy warstwę tymczasową 'lines_split'
 
     :param line_layer_name: Nazwa warstwy wektorowej z obiektami w postaci linii.
-    :param polygon_layer_name: Nazwa warstwy wektorowej z obiektami w postaci poligonów.
+    :param merged_polygon_layer: Połączona warstwa poligonowa.
     :param splitOnlySelected: True/False określa czy podzielone mają być tylko obecnie zaznaczone przekroje.
-    :return: Jeżeli splitOnlySelected to True, a żadne przekroje nie są zaznaczone to zwraca 0.
+    :return: Jeżeli splitOnlySelected to True, a żadne przekroje nie są zaznaczone to zwraca 0, w przeciwnym wypadku zwraca podzieloną warstwę.
     """
     line_layer = QgsProject.instance().mapLayersByName(line_layer_name)[0] # type: ignore
-    polygon_layer = QgsProject.instance().mapLayersByName(polygon_layer_name)[0] # type: ignore
 
     if not splitOnlySelected:
         line_layer.selectAll()
@@ -59,7 +90,7 @@ def split_lines(line_layer_name, polygon_layer_name, splitOnlySelected=True):
     
     result = processing.run("native:splitwithlines", { # type: ignore
         'INPUT': selected_layer,
-        'LINES': polygon_layer,
+        'LINES': merged_polygon_layer,
         'OUTPUT': 'memory:Split_Result'
     })
 
@@ -67,76 +98,80 @@ def split_lines(line_layer_name, polygon_layer_name, splitOnlySelected=True):
     split_layer.setName('lines_split')
     QgsProject.instance().addMapLayer(split_layer) # type: ignore
     
-    print(f"Rozdzielono linie przerojów na warstwie '{line_layer_name}' za pomocą '{polygon_layer_name}'.")
+    print(f"Rozdzielono linie przekrojów na warstwie '{line_layer_name}' za pomocą połączonych warstw poligonowych.")
     print(f"Liczba otrzymanych fragmentów: {split_layer.featureCount()}")
 
     if not splitOnlySelected:
         line_layer.removeSelection()
-
-def connect_layers(line_layer_name, polygon_layer_name):
-    """
-    Funkcja łączy line_layer_name i polygon_layer_name na podstawie lokalizacji.
-    Wybiera atrybuty obiektu z warstwy polygon_layer_name z największym nakładaniem z warstwą line_layer i łączy je w relacji jeden do jednego.
-    Tworzy warstwę tymczasową 'line_polygon_final'.
     
-    :param line_layer_name,: Nazwa warstwy wektorowej z obiektami w postaci linii.
-    :param polygon_layer_name: Nazwa warstwy wektorowej z obiektami w postaci poligonów.
-    """
-    line_layer = QgsProject.instance().mapLayersByName(line_layer_name)[0] # type: ignore
-    polygon_layer = QgsProject.instance().mapLayersByName(polygon_layer_name)[0] # type: ignore
+    return split_layer
 
-    result = processing.run("native:joinattributesbylocation", { # type: ignore
-        'INPUT':line_layer,
-        'PREDICATE':[0],
-        'JOIN':polygon_layer,
-        'JOIN_FIELDS':[],
-        'METHOD':2,
-        'DISCARD_NONMATCHING':False,
-        'PREFIX':'',
-        'OUTPUT':'memory:Combine_Result'
+def connect_with_multiple_polygons(split_layer, polygon_layer_names):
+    """
+    Funkcja łączy podzieloną warstwę linii z wieloma warstwami poligonowymi.
+    Dodaje atrybuty z każdej warstwy poligonowej jako osobne kolumny z prefiksem nazwy warstwy.
+    
+    :param split_layer: Podzielona warstwa linii.
+    :param polygon_layer_names: Lista nazw warstw poligonowych.
+    :return: Warstwa z połączonymi atrybutami.
+    """
+    current_layer = split_layer
+    
+    for polygon_name in polygon_layer_names:
+        polygon_layer = QgsProject.instance().mapLayersByName(polygon_name)[0] # type: ignore
+        
+        result = processing.run("native:joinattributesbylocation", { # type: ignore
+            'INPUT': current_layer,
+            'PREDICATE': [0],  # intersects
+            'JOIN': polygon_layer,
+            'JOIN_FIELDS': [],  # all fields
+            'METHOD': 2,  # one-to-one (take attributes of feature with largest overlap)
+            'DISCARD_NONMATCHING': False,
+            'PREFIX': f'{polygon_name}_',
+            'OUTPUT': 'memory:'
         })
+        
+        current_layer = result['OUTPUT']
     
-    combined_layer = result['OUTPUT']
-    combined_layer.setName('line_polygon_final')
-    QgsProject.instance().addMapLayer(combined_layer) # type: ignore
+    current_layer.setName('line_polygon_final')
+    QgsProject.instance().addMapLayer(current_layer) # type: ignore
+    
+    print(f"Połączono warstwę linii z {len(polygon_layer_names)} warstwami poligonowymi.")
+    return current_layer
 
-    print(f"Połączono warstwy '{line_layer_name}' i '{polygon_layer_name}'.")
-
-def add_length_field(line_layer_name, field_name='length'):
+def add_length_field(line_layer, field_name='length'):
     """
-    Funkcja oblicza długości linii w line_layer_name, a następnie dodaje kolumnę z obliczonymi długościami w liczbie całkowitej o nazwie field_name.
-    Tworzy warstwę tymczasową 'input_later_with_length'.
+    Funkcja oblicza długości linii w line_layer, a następnie dodaje kolumnę z obliczonymi długościami w liczbie całkowitej o nazwie field_name.
+    Zwraca warstwę z dodanym polem długości.
 
-    :param line_layer_name: Nazwa warstwy wektorowej z obiektami w postaci linii z liniami przekrojów.
+    :param line_layer: Warstwa wektorowa z obiektami w postaci linii.
     :param field_name: Nazwa kolumny z długościami, którą tworzy funkcja.
+    :return: Warstwa z dodanym polem długości.
     """
-    line_layer = QgsProject.instance().mapLayersByName(line_layer_name)[0] # type: ignore
-     
     result = processing.run("qgis:fieldcalculator", { # type: ignore
         'INPUT': line_layer,
         'FIELD_NAME': field_name,
-        'FIELD_TYPE': 1, # int, zaokrągla do całkowitej
+        'FIELD_TYPE': 1,  # int, zaokrągla do całkowitej
         'FIELD_LENGTH': 10,
         'FIELD_PRECISION': 3,
         'FORMULA': '$length',
-        'OUTPUT': 'memory:with_length'
+        'OUTPUT': 'memory:'
     })
     
     output_layer = result['OUTPUT']
-    output_layer.setName(f'{line_layer_name}_with_length')
+    output_layer.setName(f'lines_with_length')
     QgsProject.instance().addMapLayer(output_layer) # type: ignore
     
-    print(f"Dodano pole z długościami linii do '{line_layer_name}'")
+    return output_layer
 
-def export_layer_to_csv(line_layer_name, output_path):
+def export_layer_to_csv(layer, output_path):
     """
-    Funkcja eksportuje atrybuty warstwy o nazwie line_layer_name do pliku csv znajdującego się w output_path.
+    Funkcja eksportuje atrybuty warstwy do pliku csv znajdującego się w output_path.
     
-    :param line_layer_name: Nazwa warstwy do eksportu.
-    :param output_path: Nazwa pod jaką ma być zapisany wyeksportowany plik.
+    :param layer: Warstwa do eksportu.
+    :param output_path: Ścieżka do zapisu.
+    :return: Ścieżka zapisanego pliku lub None w przypadku błędu.
     """
-    layer = QgsProject.instance().mapLayersByName(line_layer_name)[0] # type: ignore
-    
     save_options = QgsVectorFileWriter.SaveVectorOptions() # type: ignore
     save_options.driverName = "CSV"
     save_options.fileEncoding = "UTF-8"
@@ -149,16 +184,19 @@ def export_layer_to_csv(line_layer_name, output_path):
     )
     
     if error[0] == QgsVectorFileWriter.NoError: # type: ignore
-        print(f"Warstwa '{line_layer_name}' wyeksportowana do: {output_path}")
+        print(f"Warstwa wyeksportowana do: {output_path}")
+        return output_path
     else:
         print(f"Error exporting layer: {error}")
+        return None
 
 def remove_created_memory_layers():
     """
-    Funkcja usuwa wszytskie tymczasowe warstwy w projekcie.
+    Funkcja usuwa wszystkie tymczasowe warstwy w projekcie.
     """
     project = QgsProject.instance() # type: ignore
-    layers_to_remove = ['lines_split', 'lines_split_with_length', 'line_polygon_final']
+    
+    layers_to_remove = ['lines_split', 'lines_with_length', 'line_polygon_final', 'merged_polygons_temp']
     
     for layer in project.mapLayers().values():
         if (layer.name() in layers_to_remove) and (layer.dataProvider().name() == 'memory'):
@@ -170,8 +208,8 @@ class Window(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Podział warstwy linii warstwą poligonów")
-        self.setGeometry(500, 100, 600, 300)
+        self.setWindowTitle("Podział warstwy linii wieloma warstwami poligonów")
+        self.setGeometry(500, 100, 700, 500)
         self.UiComponents()
         self.show()
 
@@ -181,10 +219,10 @@ class Window(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         main_layout.setAlignment(Qt.AlignTop)
 
-        # SEKCJA 1: WYBÓR WARSTW
-        layers_group = QGroupBox("Wybór warstw") #type: ignore
-        layers_group.setStyleSheet("QGroupBox { font-weight: bold }")
-        layers_layout = QFormLayout(layers_group)
+        # SEKCJA 1: WYBÓR WARSTWY LINII
+        lines_group = QGroupBox("Wybór warstwy linii")
+        lines_group.setStyleSheet("QGroupBox { font-weight: bold }")
+        lines_layout = QFormLayout(lines_group)
 
         # Warstwy przekrojów
         self.lines_combo_box = QComboBox()
@@ -193,31 +231,69 @@ class Window(QMainWindow):
             lines_layers_list = returnLayers
         else:
             lines_layers_list = ["Brak warstw"]
-            self.submit_button.setEnabled(False)
         self.lines_combo_box.addItems(lines_layers_list)
-        layers_layout.addRow("Linie przekrojów:", self.lines_combo_box)
+        lines_layout.addRow("Linie przekrojów:", self.lines_combo_box)
 
         # Połącz tylko zaznaczone przekroje
         self.selection_checkbox = QCheckBox("Użyj tylko zaznaczonych linii przekrojów", self)
-        self.selection_checkbox.setToolTip("Jeżeli ta opcja jest zaznaczona to tylko obecnie zaznaczone linie przekrojów zostaną połączone z warstwami geotechnicznymi. W przeciwny wypadek zostaną połączone wszystkie linie przekrojów na wybranej warstwie.")
-        self.selection_checkbox.setChecked(True)
-        layers_layout.addRow("", self.selection_checkbox)
-
-        # Warstwy poligonowe
-        self.polygons_combo_box = QComboBox()
-        returnLayers = get_layer_names(QgsWkbTypes.PolygonGeometry) #type: ignore
-        if returnLayers:
-            polygons_layers_list = returnLayers
-        else:
-            polygons_layers_list = ["Brak warstw"]
-            self.submit_button.setEnabled(False)
-        self.polygons_combo_box.addItems(polygons_layers_list)
-        layers_layout.addRow("Warstwa dzieląca:", self.polygons_combo_box)
+        self.selection_checkbox.setToolTip("Jeżeli ta opcja jest zaznaczona to tylko obecnie zaznaczone linie przekrojów zostaną podzielone i połączone z warstwami poligonowymi.")
+        lines_layout.addRow("", self.selection_checkbox)
         
-        main_layout.addWidget(layers_group)
+        main_layout.addWidget(lines_group)
 
-        # SEKCJA 2: USTAWIENIA EKSPORTU
-        export_group = QGroupBox("Ustawienia eksportu") #type: ignore
+        # SEKCJA 2: WYBÓR WARSTW POLIGONOWYCH (WIELOKROTNY WYBÓR)
+        polygons_group = QGroupBox("Wybór warstw poligonowych (możliwy wielokrotny wybór)")
+        polygons_group.setStyleSheet("QGroupBox { font-weight: bold }")
+        polygons_layout = QVBoxLayout(polygons_group)
+
+        # Przyciski do zarządzania zaznaczeniem
+        button_layout = QHBoxLayout()
+        
+        self.select_all_button = QPushButton("Zaznacz wszystkie")
+        self.select_all_button.clicked.connect(self.select_all_polygons)
+        button_layout.addWidget(self.select_all_button)
+        
+        self.deselect_all_button = QPushButton("Odznacz wszystkie")
+        self.deselect_all_button.clicked.connect(self.deselect_all_polygons)
+        button_layout.addWidget(self.deselect_all_button)
+        
+        polygons_layout.addLayout(button_layout)
+
+        # Obszar przewijany z checkboxami dla warstw poligonowych
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setAlignment(Qt.AlignTop)
+        scroll_layout.setContentsMargins(0, 5, 0, 5)
+        
+        # Pobierz wszystkie warstwy poligonowe i utwórz dla nich checkboxy
+        self.polygon_checkboxes = []
+        self.polygon_checkbox_layout = scroll_layout
+        
+        available_polygons = get_layer_names(QgsWkbTypes.PolygonGeometry) #type: ignore
+        
+        if available_polygons:
+            for polygon_name in available_polygons:
+                checkbox = QCheckBox(polygon_name)
+                checkbox.stateChanged.connect(self.check_submit_button_state)
+                scroll_layout.addWidget(checkbox)
+                self.polygon_checkboxes.append(checkbox)
+        else:
+            no_layers_label = QLabel("Brak warstw poligonowych w projekcie")
+            no_layers_label.setStyleSheet("color: #999; font-style: italic; padding: 5px;")
+            scroll_layout.addWidget(no_layers_label)
+        
+        scroll_area.setWidget(scroll_content)
+        polygons_layout.addWidget(QLabel("Dostępne warstwy poligonowe:"))
+        polygons_layout.addWidget(scroll_area)
+        
+        main_layout.addWidget(polygons_group)
+
+        # SEKCJA 3: USTAWIENIA EKSPORTU
+        export_group = QGroupBox("Ustawienia eksportu")
         export_group.setStyleSheet("QGroupBox { font-weight: bold; }")
         export_layout = QFormLayout(export_group)
         
@@ -229,7 +305,7 @@ class Window(QMainWindow):
         self.length_line_edit.setValidator(validator)
         self.length_line_edit.setToolTip("Nazwa kolumny może zawierać tylko litery, cyfry, podkreślenia i myślniki.")
         self.length_line_edit.setPlaceholderText("Domyślna nazwa kolumny 'length'")
-        export_layout.addRow("Nazwa kolumny z długościami podzielonych linii:", self.length_line_edit)
+        export_layout.addRow("Nazwa kolumny z długościami:", self.length_line_edit)
 
         # Nazwa pliku CSV do eksportu
         self.choose_file_path_button = QPushButton("Wybierz miejsce zapisu")
@@ -240,8 +316,8 @@ class Window(QMainWindow):
         
         main_layout.addWidget(export_group)
 
-        # SEKCJA 3: ŁĄCZENIE WARSTW
-        connect_group = QGroupBox("Łączenie warstw") #type: ignore
+        # SEKCJA 4: ŁĄCZENIE WARSTW
+        connect_group = QGroupBox("Łączenie warstw")
         connect_group.setStyleSheet("QGroupBox { font-weight: bold }")
         connect_layout = QVBoxLayout(connect_group)
 
@@ -251,72 +327,129 @@ class Window(QMainWindow):
         connect_layout.addWidget(self.delete_checkbox)
 
         # Połącz warstwy
-        self.submit_button = QPushButton("Połącz")
+        self.submit_button = QPushButton("Połącz wszystkie")
         self.submit_button.clicked.connect(self.on_submit)
         self.submit_button.setEnabled(False)
         connect_layout.addWidget(self.submit_button)
         
         main_layout.addWidget(connect_group)
 
-        # SEKCJA 4: Result label
-        self.result_label = QLabel("Czekam na rozpoczęcie łączenia...")
+        # SEKCJA 5: Result label
+        self.result_label = QLabel("Wybierz warstwy do połączenia...")
         self.result_label.setWordWrap(True)
         self.result_label.setStyleSheet("font-weight: bold; color:#999")
         main_layout.addWidget(self.result_label)
 
+    def get_selected_polygon_layers(self):
+        """Zwraca listę zaznaczonych warstw poligonowych"""
+        selected = []
+        for checkbox in self.polygon_checkboxes:
+            if checkbox.isChecked():
+                selected.append(checkbox.text())
+        return selected
+
+    def select_all_polygons(self):
+        """Zaznacza wszystkie warstwy poligonowe"""
+        for checkbox in self.polygon_checkboxes:
+            checkbox.setChecked(True)
+        self.check_submit_button_state()
+
+    def deselect_all_polygons(self):
+        """Odznacza wszystkie warstwy poligonowe"""
+        for checkbox in self.polygon_checkboxes:
+            checkbox.setChecked(False)
+        self.check_submit_button_state()
+
+    def check_submit_button_state(self):
+        """Sprawdza czy można włączyć przycisk submit"""
+        line_layer = self.lines_combo_box.currentText()
+        has_polygons = len(self.get_selected_polygon_layers()) > 0
+        has_file_path = self.path_label.text() != "Nie wybrano miejsca zapisu"
+        
+        self.submit_button.setEnabled(line_layer != "Brak warstw" and has_polygons and has_file_path)
+
     def on_submit(self):
         self.submit_button.setEnabled(False)
-        layer1 = self.lines_combo_box.currentText()
-        layer2 = self.polygons_combo_box.currentText()
+        line_layer_name = self.lines_combo_box.currentText()
         length_column_name = self.length_line_edit.text().strip()
-
-        if(layer1 == layer2):
-            self.result_label.setText(f"Wybrano te same warstwy, nie można ich połączyć.")
+        polygon_layers = self.get_selected_polygon_layers()
+        
+        if not polygon_layers:
+            self.result_label.setText("Nie wybrano żadnych warstw poligonowych.")
             self.result_label.setStyleSheet("color: #c00")
-
-        elif length_column_name in get_layer_field_names(layer1):
-            self.result_label.setText(f"Warstwa '{layer1}' już posiada kolumnę o nazwie '{length_column_name}'. Nie można przeprowadzić łączenia.\nWybierz inną nazwę kolumny z długościami linii i spróbuj ponownie.")
+            self.submit_button.setEnabled(True)
+            return
+        
+        if length_column_name in get_layer_field_names(line_layer_name):
+            self.result_label.setText(f"Warstwa '{line_layer_name}' już posiada kolumnę o nazwie '{length_column_name}'. Wybierz inną nazwę.")
+            self.result_label.setStyleSheet("color: #c00")
+            self.submit_button.setEnabled(True)
+            return
+        
+        self.result_label.setText(f"Krok 1/4: Łączenie {len(polygon_layers)} warstw poligonowych w jedną...")
+        self.result_label.setStyleSheet("color: #00c")
+        QApplication.processEvents()
+        
+        # 1. Połącz wybrane warstwy poligonowe
+        merged_polygon_layer = merge_polygon_layers(polygon_layers)
+        
+        self.result_label.setText(f"Krok 2/4: Dzielenie warstwy linii '{line_layer_name}' połączoną warstwą poligonową...")
+        QApplication.processEvents()
+        
+        # 2. Podziel wybraną warstwę linii za pomocą połączonej warstwy poligonowej
+        split_result = split_lines(line_layer_name, merged_polygon_layer, self.selection_checkbox.isChecked())
+        
+        if split_result == 0:
+            self.result_label.setText(f"Nie wybrano przekrojów do podziału.")
+            self.result_label.setStyleSheet("color: #c00")
+            self.submit_button.setEnabled(True)
+            return
+        
+        split_layer = QgsProject.instance().mapLayersByName('lines_split')[0] # type: ignore
+        
+        self.result_label.setText(f"Krok 3/4: Dodawanie pola długości '{length_column_name}' do podzielonych linii...")
+        QApplication.processEvents()
+        
+        # 3. Oblicz długości podzielonych linii i dodaj pole z wynikiem
+        lines_with_length = add_length_field(split_layer, length_column_name)
+        
+        self.result_label.setText(f"Krok 4/4: Łączenie atrybutów z {len(polygon_layers)} warstwami poligonowymi...")
+        QApplication.processEvents()
+        
+        # 4. Połącz warstwę linii z warstwą poligonów
+        final_layer = connect_with_multiple_polygons(lines_with_length, polygon_layers)
+        
+        # 5. Eksportuj do CSV
+        filename = self.path_label.text().strip()
+        self.result_label.setText(f"Eksportowanie do pliku CSV...")
+        QApplication.processEvents()
+        
+        exported_file = export_layer_to_csv(final_layer, filename)
+        
+        if exported_file:
+            self.result_label.setText(f"Sukces! Wyeksportowano połączoną warstwę do pliku: {exported_file}")
+            self.result_label.setStyleSheet("color: #0c0")
+        else:
+            self.result_label.setText(f"Błąd podczas eksportu do pliku CSV.")
             self.result_label.setStyleSheet("color: #c00")
         
-        else:
-            self.result_label.setText(f"Trwa dzielenie warstwy '{layer1}'...")
-            self.result_label.setStyleSheet("color: #00c")
-            QApplication.processEvents()
-            result = split_lines(layer1, layer2, self.selection_checkbox.isChecked())
-
-            if result == 0:
-                self.result_label.setText(f"Nie wybrano przekrojów.")
-                self.result_label.setStyleSheet("color: #c00")
-            else:
-                self.result_label.setText(f"Trwa łączenie atrybutów warstw '{layer1}' i '{layer2}'...")
-                QApplication.processEvents()
-
-                self.result_label.setText(f"Trwa obliczanie długości segmentów linii z podzielonej warstwy...")
-                QApplication.processEvents()
-                add_length_field('lines_split', length_column_name)
-                connect_layers('lines_split_with_length', layer2)
-
-                filename = self.path_label.text().strip()
-                export_layer_to_csv('line_polygon_final', filename)
-                self.result_label.setText(f"Wyeksportowano połączoną warstwę do pliku: {filename}")
-                self.result_label.setStyleSheet("color: #0c0")
-
-                if self.delete_checkbox.isChecked():
-                    remove_created_memory_layers()
-
+        # 6. Wyczyść warstwy tymczasowe
+        if self.delete_checkbox.isChecked():
+            remove_created_memory_layers()
+        
         self.submit_button.setEnabled(True)
 
     def chooseSaveFilePath(self):
-        file_path, _ = QFileDialog.getSaveFileName(self,"Wybierz miejsce zapisu pliku CSV","","Pliki CSV (*.csv);;Wszystkie pliki (*.*)")
+        file_path, _ = QFileDialog.getSaveFileName(self, "Wybierz miejsce zapisu pliku CSV", "", "Pliki CSV (*.csv);;Wszystkie pliki (*.*)")
         
         if file_path:
             if not file_path.lower().endswith('.csv'):
                 file_path += '.csv'
             
-            self.submit_button.setEnabled(True)
             self.path_label.setText(file_path)
             self.path_label.setStyleSheet("font-weight: normal; color: #000")
             self.choose_file_path_button.setText("Zmień miejsce eksportu")
+            self.check_submit_button_state()
         
         return file_path
 
