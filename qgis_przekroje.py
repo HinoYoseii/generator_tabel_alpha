@@ -289,7 +289,6 @@ class Window(QMainWindow):
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setAlignment(Qt.AlignTop)
-        scroll_layout.setContentsMargins(0, 5, 0, 5)
         
         # Pobierz wszystkie warstwy poligonowe i utwórz dla nich checkboxy
         self.polygon_checkboxes = []
@@ -305,7 +304,7 @@ class Window(QMainWindow):
                 self.polygon_checkboxes.append(checkbox)
         else:
             no_layers_label = QLabel("Brak warstw poligonowych w projekcie")
-            no_layers_label.setStyleSheet("color: #999; font-style: italic; padding: 5px;")
+            no_layers_label.setStyleSheet("color: #999; font-style: italic;")
             scroll_layout.addWidget(no_layers_label)
         
         scroll_area.setWidget(scroll_content)
