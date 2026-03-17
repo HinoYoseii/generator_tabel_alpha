@@ -62,14 +62,13 @@ class MainWindow(QMainWindow):
         config_layout.addRow("Skala przekrojów:", self.skala_combo)
         
         # Wybór presetu kolumn
-        preset_layout = QHBoxLayout()
         self.preset_combo = QComboBox()
         self.preset_combo.addItem("-- Wybierz preset --", None)
         self.preset_combo.addItems(self.presets_manager.get_preset_names())
         self.preset_combo.setEnabled(False)
         self.preset_combo.currentIndexChanged.connect(self.apply_preset)
-        preset_layout.addWidget(self.preset_combo)
-        config_layout.addRow("Preset wierszy tabeli:", preset_layout)
+        config_layout.addRow("Preset wierszy tabeli:", self.preset_combo)
+
         
         config_group.setLayout(config_layout)
         main_layout.addWidget(config_group)
@@ -166,7 +165,7 @@ class MainWindow(QMainWindow):
         self.validate_process_button()
         
         self.status_label.setText(f"✓ Zastosowano preset {preset_type} z {len(preset_columns)} kolumnami\nUzupełnij mapowanie kolumn i kliknij 'Przetwórz dane'")
-    
+
     def validate_process_button(self):
         """Waliduje czy przycisk 'Przetwórz dane' powinien być aktywny"""
         # Sprawdza czy wybrano preset
