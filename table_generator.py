@@ -13,14 +13,15 @@ class TableGenerator:
         self.margin = 20
         self.label_width = 300
         self.font_size = 18
-        self.scale = 10
+        self.scale = 4
         self.font = self._load_font()
 
         self.background_color_map = {}
         self.text_color_map = {}
         self.scale_map = {
             "1:1000":10,
-            "1:2500":4
+            "1:2500":4,
+            "1:8000":1.25
         }
     
     def get_scale_list(self) -> List[str]:
@@ -85,6 +86,9 @@ class TableGenerator:
     
     def set_label_width(self, selected_label_width:int):
         self.label_width = selected_label_width
+
+    def set_scale(self, scale):
+        self.scale = self.scale_map.get(scale)
     
     def _prepare_row_segments(self, group_df: pd.DataFrame) -> Dict[str, List[Tuple[str, float]]]:
         """Przygotowuje segmenty dla wszystkich wierszy do rysowania"""
@@ -161,7 +165,6 @@ class TableGenerator:
             try:
                 filename = self.generate_table(group, nr_zal)
                 generated_files.append(filename)
-                # print(f"Zapisano: {filename}")
             except Exception as e:
                 print(f"Błąd przy generowaniu tabeli dla {nr_zal}: {e}")
         

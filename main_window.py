@@ -244,6 +244,9 @@ class MainWindow(QMainWindow):
             preset_name = self.preset_combo.currentText()
             background_colors_map, text_colors_map = self.presets_manager.get_style_maps(preset_name=preset_name)
             self.table_generator.set_color_maps(background_colors_map, text_colors_map)
+
+            scale = self.skala_combo.currentText()
+            self.table_generator.set_scale(scale)
             
             # Wywołanie generatora
             files = self.table_generator.generate_all_tables(self.processed_df, nr_zal_col)

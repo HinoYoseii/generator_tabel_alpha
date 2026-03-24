@@ -58,11 +58,6 @@ class ColumnMappingWidget(QWidget):
             group.setLayout(group_layout)
             
             scroll_layout.addWidget(group)
-        
-        # # Informacja o kolumnach automatycznych
-        # if auto_columns and not clear_info:
-        #     self.info_label = QLabel(f"Kolumny {auto_columns} są generowane automatycznie na podstawie innych kolumn więc nie wymagają przypisania.")
-        #     scroll_layout.addWidget(self.info_label)
             
         scroll_layout.addStretch()
         scroll.setWidget(scroll_widget)

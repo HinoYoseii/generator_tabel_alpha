@@ -165,8 +165,7 @@ DEFAULT_CONFIG = {
                 }
             }
         }
-    ],
-    "auto_columns": []
+    ]
 }
 
 @dataclass
@@ -186,7 +185,6 @@ class ColumnPresets:
     def __init__(self, config_path: str = "PRESETS.json"):
         self.config_path = config_path
         self.presets: Dict[str, ColumnPreset] = {}
-        self.auto_columns: List[str] = []
         self.load_from_file()
     
     def load_from_file(self):
@@ -217,9 +215,6 @@ class ColumnPresets:
                     )
                     self.presets[preset.name] = preset
             
-            if "auto_columns" in data:
-                self.auto_columns = data["auto_columns"]
-            
         except Exception as e:
             print(f"Błąd podczas wczytywania pliku konfiguracyjnego: {e}")
             self._create_default_config()
@@ -243,8 +238,6 @@ class ColumnPresets:
                 )
                 self.presets[preset.name] = preset
             
-            self.auto_columns = default_config["auto_columns"]
-            
         except Exception as e:
             print(f"Błąd podczas tworzenia domyślnego pliku konfiguracyjnego: {e}")
     
@@ -258,8 +251,7 @@ class ColumnPresets:
     
     def _save_to_file(self):
         data = {
-            "presets": [],
-            "auto_columns": self.auto_columns
+            "presets": []
         }
         
         for preset in self.presets.values():
