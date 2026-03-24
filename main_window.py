@@ -55,11 +55,22 @@ class MainWindow(QMainWindow):
         self.dlugosci_combo.setToolTip("Nazwa kolumny utworzonej w skrypcie qgis, domyślnie 'length'.")
         config_layout.addRow("Kolumna z długościami podzielonych linii przekrojów:", self.dlugosci_combo)
 
+        # Skala przekroju
         self.skala_combo = QComboBox()
         self.skala_combo.addItem("-- Wybierz skalę --", None)
         self.skala_combo.setEnabled(False)
         self.skala_combo.currentIndexChanged.connect(self.validate_process_button)
         config_layout.addRow("Skala przekrojów:", self.skala_combo)
+
+        # Szerokośc kolumn nagłówkowych
+        self.width_input = QSpinBox()
+        self.width_input.setEnabled(False)
+        self.width_input.setSingleStep(50)
+        self.width_input.setMaximum(500)
+        self.width_input.setMinimum(50)
+        self.width_input.setValue(300)
+        self.width_input.setSuffix(" px")
+        config_layout.addRow("Szerokość kolumn nagłówkowych:", self.width_input)
         
         # Wybór presetu kolumn
         self.preset_combo = QComboBox()
@@ -134,6 +145,8 @@ class MainWindow(QMainWindow):
                 self.skala_combo.addItem("-- Wybierz skalę --", None)
                 self.skala_combo.addItems(self.table_generator.get_scale_list())
                 self.skala_combo.setEnabled(True)
+
+                self.width_input.setEnabled(True)
                 
                 # Włącz wybór presetu
                 self.preset_combo.setCurrentIndex(0)
@@ -213,9 +226,8 @@ class MainWindow(QMainWindow):
             self.status_label.setText("Eksportowanie danych...")
             QApplication.processEvents()
             self.processed_df.to_csv('output.csv', index=False)
-            # self.processed_df.to_excel('output.xlsx', index=False)
             
-            self.status_label.setText("✓ Wyeksportowano dane do output.csv")
+            self.status_label.setText("Wyeksportowano dane do output.csv")
             QMessageBox.information(self, "Sukces", "Dane wyeksportowane do:\n- output.csv")
             
         except Exception as e:
@@ -247,6 +259,9 @@ class MainWindow(QMainWindow):
 
             scale = self.skala_combo.currentText()
             self.table_generator.set_scale(scale)
+
+            width = self.width_input.value()
+            self.table_generator.set_label_width(width)
             
             # Wywołanie generatora
             files = self.table_generator.generate_all_tables(self.processed_df, nr_zal_col)

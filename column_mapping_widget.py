@@ -14,7 +14,6 @@ class ColumnMappingWidget(QWidget):
         self.setup_columns([], [], clear_info=True)
         
     def setup_columns(self, preset_columns: list, input_columns: list, clear_info=False):
-        """ Setup kolumn do mapowania kolumn wejściowych i kolumn z presetu """
         while self.layout.count():
             item = self.layout.takeAt(0)
             if item.widget():
@@ -28,8 +27,6 @@ class ColumnMappingWidget(QWidget):
         scroll.setWidgetResizable(True)
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
-        
-        # auto_columns = ColumnPresets.AUTO_COLUMNS
         
         for col in preset_columns:
             # Tworzy group box dla każdej kolumny

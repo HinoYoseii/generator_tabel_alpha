@@ -5,14 +5,13 @@ from typing import Dict, List, Tuple
 import os
 
 class TableGenerator:
-    
     def __init__(self):
         self.output_dir = "tabele"
         self.preset_columns = []
         self.row_height = 40
+        self.font_size = 18
         self.margin = 20
         self.label_width = 300
-        self.font_size = 18
         self.scale = 4
         self.font = self._load_font()
 
@@ -27,6 +26,20 @@ class TableGenerator:
     def get_scale_list(self) -> List[str]:
         return list(self.scale_map.keys()) if self.scale_map else []
     
+    def set_preset_columns(self, preset_columns: list):
+        self.preset_columns = preset_columns
+    
+    def set_color_maps(self, background_colors:dict, text_colors: dict):
+        self.background_color_map = background_colors
+        self.text_color_map = text_colors
+    
+    def set_label_width(self, label_width:int):
+        print(label_width)
+        self.label_width = label_width
+
+    def set_scale(self, scale):
+        self.scale = self.scale_map.get(scale)
+    
     def _load_font(self):
         """Ładuje czcionkę obsługującą polskie znaki"""
         try:
@@ -39,7 +52,7 @@ class TableGenerator:
                 return ImageFont.load_default()
     
     @staticmethod
-    def clean_segments(name_series, len_series) -> List[Tuple[str, float]]:
+    def _clean_segments(name_series, len_series) -> List[Tuple[str, float]]:
         """Wyczyść i przygotuj segmenty do rysowania"""
         segments = []
         for name, length in zip(name_series, len_series):
@@ -54,42 +67,6 @@ class TableGenerator:
             segments.append((str(name), length))
         return segments
     
-    def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str) -> str:
-        row_segments = self._prepare_row_segments(group_df)
-        
-        max_width = max(
-            sum(length for _, length in segments) * self.scale if segments else 0
-            for segments in row_segments.values()
-        )
-        
-        img_width = int(self.label_width + max_width + 2 * self.margin)
-        img_height = len(row_segments) * self.row_height + 2 * self.margin
-
-        img = Image.new("RGB", (img_width, img_height), "white")
-        draw = ImageDraw.Draw(img)
-        
-        self._draw_rows(draw, row_segments, max_width)
-        
-        safe_nr_zal = str(nr_zal_value).replace('.', '_').replace('/', '_')
-        filename = os.path.join(self.output_dir, f"{safe_nr_zal}.jpg")
-        img.save(filename, quality=95)
-        
-        return filename
-    
-    def set_preset_columns(self, preset_columns: list):
-        """Ustawia kolumny presetu do użycia przy generowaniu tabeli"""
-        self.preset_columns = preset_columns
-    
-    def set_color_maps(self, background_color:dict, text_color: dict):
-        self.background_color_map = background_color
-        self.text_color_map = text_color
-    
-    def set_label_width(self, selected_label_width:int):
-        self.label_width = selected_label_width
-
-    def set_scale(self, scale):
-        self.scale = self.scale_map.get(scale)
-    
     def _prepare_row_segments(self, group_df: pd.DataFrame) -> Dict[str, List[Tuple[str, float]]]:
         """Przygotowuje segmenty dla wszystkich wierszy do rysowania"""
         row_segments = {}
@@ -101,7 +78,7 @@ class TableGenerator:
         
         for label, col_name in columns_to_draw:
             if col_name in group_df.columns and f"{col_name} len" in group_df.columns:
-                segments = self.clean_segments(
+                segments = self._clean_segments(
                     group_df[col_name],
                     group_df[f"{col_name} len"]
                 )
@@ -157,6 +134,28 @@ class TableGenerator:
         
         draw.text((int(text_x), int(text_y)), text, fill=fill, font=self.font)
     
+    def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str) -> str:
+        row_segments = self._prepare_row_segments(group_df)
+        
+        max_width = max(
+            sum(length for _, length in segments) * self.scale if segments else 0
+            for segments in row_segments.values()
+        )
+        
+        img_width = int(self.label_width + max_width + 2 * self.margin)
+        img_height = len(row_segments) * self.row_height + 2 * self.margin
+
+        img = Image.new("RGB", (img_width, img_height), "white")
+        draw = ImageDraw.Draw(img)
+        
+        self._draw_rows(draw, row_segments, max_width)
+        
+        safe_nr_zal = str(nr_zal_value).replace('.', '_').replace('/', '_')
+        filename = os.path.join(self.output_dir, f"{safe_nr_zal}.jpg")
+        img.save(filename, quality=95)
+        
+        return filename
+
     def generate_all_tables(self, df: pd.DataFrame, nr_zal_column: str) -> List[str]:
         generated_files = []
         os.makedirs(self.output_dir, exist_ok=True)
