@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, # type: ignore
                             QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, 
                             QFileDialog, QGroupBox, QHBoxLayout, QScrollArea, QFrame,
-                            QListWidget, QListWidgetItem, QAbstractItemView) # type: ignore
+                            QListWidget, QAbstractItemView) # type: ignore
 from PyQt5.QtGui import QRegularExpressionValidator # type: ignore
 from PyQt5.QtCore import Qt, QRegularExpression # type: ignore
 

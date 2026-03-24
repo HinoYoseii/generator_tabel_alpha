@@ -1,72 +1,50 @@
-from PyQt6.QtWidgets import *
-from column_presets import ColumnPresets
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QScrollArea, QGroupBox, QCheckBox, QComboBox, QLabel
+)
+
 
 class ColumnMappingWidget(QWidget):
-    """ Widget do mapowania kolumn """
-    
+    """Widget do mapowania kolumn."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.mappings = {}
-        self.checkboxes = {}
-        self.combos = {}
-        self.layout = QVBoxLayout(self)
+        self.combos: dict[str, QComboBox] = {}
+
+        self._main_layout = QVBoxLayout(self)
         self.info_label = QLabel("")
-        self.setup_columns([], [], clear_info=True)
-        
-    def setup_columns(self, preset_columns: list, input_columns: list, clear_info=False):
-        while self.layout.count():
-            item = self.layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-        
-        self.mappings.clear()
-        self.checkboxes.clear()
+        self._main_layout.addWidget(self.info_label)
+
+        self._scroll_area = QScrollArea()
+        self._scroll_area.setWidgetResizable(True)
+        self._main_layout.addWidget(self._scroll_area)
+
+    def setup_columns(self, preset_columns: list[str], input_columns: list[str], clear_info: bool = False) -> None:
         self.combos.clear()
-        
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll_widget = QWidget()
-        scroll_layout = QVBoxLayout(scroll_widget)
-        
+        if clear_info:
+            self.info_label.setText("")
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
         for col in preset_columns:
-            # Tworzy group box dla każdej kolumny
-            group = QGroupBox(col)
-            group_layout = QHBoxLayout()
-            
-            # Checbox do włączania/wyłączania mapowania kolumny
-            enable_check = QCheckBox("Włącz")
-            enable_check.setChecked(True)
-            self.checkboxes[col] = enable_check
-            
-            # Combo box z kolumnami wejściowymi z CSV
-            combo = QComboBox()
-            combo.addItem("-- Wybierz kolumnę --", None)
-            for input_col in input_columns:
-                combo.addItem(input_col, input_col)
-            self.combos[col] = combo
+            layout.addWidget(self._make_column_row(col, input_columns))
+        layout.addStretch()
+        self._scroll_area.setWidget(container)
 
-            # Połączenie sygnału checkboxa z włączaniem/wyłączaniem combo boxa
-            def make_toggle(c):
-                return lambda checked: (c.setEnabled(checked))
-            enable_check.toggled.connect(make_toggle(combo))
+    def _make_column_row(self, col: str, input_columns: list[str]) -> QGroupBox:
+        group = QGroupBox(col)
+        row = QHBoxLayout(group)
+        combo = QComboBox()
+        combo.addItem("-- Pomiń --", None)
+        for input_col in input_columns:
+            combo.addItem(input_col, input_col)
+        self.combos[col] = combo
+        row.addWidget(combo)
+        return group
 
-            group_layout.addWidget(enable_check)
-            group_layout.addWidget(combo, stretch=2)
-            group.setLayout(group_layout)
-            
-            scroll_layout.addWidget(group)
-            
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_widget)
-        self.layout.addWidget(scroll)
-    
-    def get_column_mapping(self):
-        """ Pobiera aktualne mapowanie kolumn do słownika"""
-        mapping = {}
-        for col, checkbox in self.checkboxes.items():
-            if checkbox.isChecked():
-                combo = self.combos[col]
-                selected = combo.currentData()
-                if selected:
-                    mapping[col] = selected
-        return mapping
+    def get_column_mapping(self) -> dict[str, str]:
+        return {
+            col: combo.currentData()
+            for col, combo in self.combos.items()
+            if combo.currentData() is not None
+        }

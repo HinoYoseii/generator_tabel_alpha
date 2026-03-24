@@ -1,9 +1,7 @@
 import pandas as pd
-from typing import List, Tuple, Optional
+from typing import List, Optional
 
 class DataProcessor:
-    """Handles CSV data processing and aggregation"""
-    
     def __init__(self):
         self.df: Optional[pd.DataFrame] = None
         self.input_columns: List[str] = []
