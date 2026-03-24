@@ -7,7 +7,7 @@ import os
 class TableGenerator:
     def __init__(self):
         self.output_dir = "tabele"
-        self.preset_columns = []
+        self.enabled_columns = []
         self.row_height = 40
         self.font_size = 18
         self.margin = 20
@@ -26,8 +26,8 @@ class TableGenerator:
     def get_scale_list(self) -> List[str]:
         return list(self.scale_map.keys()) if self.scale_map else []
     
-    def set_preset_columns(self, preset_columns: list):
-        self.preset_columns = preset_columns
+    def set_enabled_columns(self, enabled_columns: list):
+        self.enabled_columns = enabled_columns
     
     def set_color_maps(self, background_colors:dict, text_colors: dict):
         self.background_color_map = background_colors
@@ -73,7 +73,7 @@ class TableGenerator:
         
         columns_to_draw = []
         
-        for col in self.preset_columns:
+        for col in self.enabled_columns:
             columns_to_draw.append((f"{col}:", col))
         
         for label, col_name in columns_to_draw:
@@ -159,6 +159,7 @@ class TableGenerator:
     def generate_all_tables(self, df: pd.DataFrame, nr_zal_column: str) -> List[str]:
         generated_files = []
         os.makedirs(self.output_dir, exist_ok=True)
+
 
         for nr_zal, group in df.groupby(nr_zal_column, sort=False):
             try:
