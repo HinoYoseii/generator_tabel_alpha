@@ -199,7 +199,8 @@ def add_unique_name_field(line_layer, field_name, selected_columns, separator="_
     })
     
     output_layer = result['OUTPUT']
-    output_layer.setName(line_layer.name())
+    
+    output_layer.setName(f'{line_layer.name()}_with_unique_name')
     QgsProject.instance().addMapLayer(output_layer) # type: ignore
     
     return output_layer
