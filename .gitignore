@@ -1,10 +1,5 @@
-dane.csv
 output.csv
-tabele/
-Thumbs.db
 output.xlsx
+tabele/
 __pycache__/
-dane_wszystkie.csv
-przekroje_z_warunkami_geotechnicznymi.csv
-temp.txt
-test
+TODO.txt

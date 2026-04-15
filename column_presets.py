@@ -181,7 +181,7 @@ class ColumnPreset:
     styles: Optional[Dict[str, ColumnStyle]] = None
 
 class ColumnPresets: 
-    def __init__(self, config_path: str = "PRESETS.json"):
+    def __init__(self, config_path: str = "data/PRESETS.json"):
         self.config_path = config_path
         self.presets: Dict[str, ColumnPreset] = {}
         self.load_from_file()
