@@ -3,6 +3,7 @@
         {
             "name": "DBP",
             "columns": [
+                "Charakterystyka drogi",
                 "Warunki geotechniczne",
                 "Warunki wodne",
                 "Grupy nośności",
@@ -61,6 +62,7 @@
         {
             "name": "DGI",
             "columns": [
+                "Charakterystyka drogi",
                 "Warunki geomorfologiczne",
                 "Warunki hydrogeologiczne",
                 "Warunki geologiczne",

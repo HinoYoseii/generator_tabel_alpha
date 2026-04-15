@@ -34,7 +34,6 @@ class TableGenerator:
         self.text_color_map = text_colors
     
     def set_label_width(self, label_width:int):
-        print(label_width)
         self.label_width = label_width
 
     def set_scale(self, scale):

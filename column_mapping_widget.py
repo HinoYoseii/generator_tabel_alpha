@@ -3,7 +3,6 @@ from PyQt6.QtWidgets import (
     QScrollArea, QGroupBox, QCheckBox, QComboBox, QLabel
 )
 
-
 class ColumnMappingWidget(QWidget):
     """Widget do mapowania kolumn."""
 

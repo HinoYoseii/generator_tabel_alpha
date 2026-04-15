@@ -237,7 +237,7 @@ def remove_created_memory_layers():
     """
     project = QgsProject.instance() # type: ignore
     
-    layers_to_remove = ['lines_split', 'lines_with_length', 'line_polygon_final', 'merged_polygons_temp']
+    layers_to_remove = ['lines_split', 'lines_with_length_with_unique_name', 'lines_with_length', 'line_polygon_final', 'merged_polygons_temp']
     
     for layer in project.mapLayers().values():
         if (layer.name() in layers_to_remove) and (layer.dataProvider().name() == 'memory'):

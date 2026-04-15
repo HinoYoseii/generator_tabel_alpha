@@ -35,9 +35,9 @@ class ConfigWidget(QGroupBox):
         self.width_input = QSpinBox()
         self.width_input.setEnabled(False)
         self.width_input.setSingleStep(50)
-        self.width_input.setMaximum(500)
+        self.width_input.setMaximum(1000)
         self.width_input.setMinimum(50)
-        self.width_input.setValue(300)
+        self.width_input.setValue(600)
         self.width_input.setSuffix(" px")
         config_layout.addRow("Szerokość kolumn nagłówkowych:", self.width_input)
 

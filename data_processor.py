@@ -30,20 +30,28 @@ class DataProcessor:
         if len(df) == 0:
             return result
         
-        current_val = df[column].iloc[0]
-        current_sum = df[length_column].iloc[0]
+        def to_scalar(val):
+            """Zawsze używa skalara"""
+            if isinstance(val, pd.Series):
+                val = val.iloc[0]
+            return val
+
+        current_val = to_scalar(df[column].iloc[0])
+        current_sum = to_scalar(df[length_column].iloc[0])
         
         for idx in range(1, len(df)):
-            val = df[column].iloc[idx]
-            length = df[length_column].iloc[idx]
+            val = to_scalar(df[column].iloc[idx])
+            length = to_scalar(df[length_column].iloc[idx])
             
             is_current_null = pd.isna(current_val) or current_val == ''
             is_val_null = pd.isna(val) or val == ''
             
-            if (is_current_null and is_val_null) or (val == current_val):
+            both_null = is_current_null and is_val_null
+            both_equal = (not is_current_null and not is_val_null and val == current_val)
+            
+            if both_null or both_equal:
                 current_sum += length
             else:
-                # null na brak danych
                 display_val = "brak danych" if is_current_null else current_val
                 result.append((display_val, current_sum))
                 current_val = val
@@ -59,7 +67,7 @@ class DataProcessor:
         if self.df is None:
             raise ValueError("No data loaded")
         
-        kilometraz_column = column_mapping.get("Kilometraż")
+        # kilometraz_column = column_mapping.get("Kilometraż")
         
         columns_needed = [nr_zal_column, length_column] + [
             col for col in column_mapping.values() if col
@@ -70,15 +78,15 @@ class DataProcessor:
         
         for nr_zal, group in working_df.groupby(nr_zal_column, sort=False):
             group = group.reset_index(drop=True)
-            total_length = group[length_column].sum()
+            # total_length = group[length_column].sum()
             
             aggregated = {}
             for output_col, input_col in column_mapping.items():
                 if input_col:
                     aggregated[output_col] = self.aggregate_consecutive_with_lengths(group, input_col, length_column)
             
-            if kilometraz_column:
-                aggregated["Odległości"] = aggregated.get("Kilometraż", [])
+            # if kilometraz_column:
+            #     aggregated["Odległości"] = aggregated.get("Kilometraż", [])
             
             max_rows = max(len(agg) for agg in aggregated.values()) if aggregated else 1
             

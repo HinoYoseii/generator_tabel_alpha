@@ -153,9 +153,8 @@ class MainWindow(QMainWindow):
         if self.processed_df is None:
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Zapisz plik CSV", "output.csv", "CSV Files (*.csv)"
-        )
+        file_path, _ = QFileDialog.getSaveFileName(self, "Zapisz plik CSV", "output.csv", "CSV Files (*.csv)")
+        
         if not file_path:
             return
 
