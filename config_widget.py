@@ -51,7 +51,6 @@ class ConfigWidget(QGroupBox):
         self.setLayout(config_layout)
 
     def populate_columns(self, columns):
-        """Wypełnia combo boxy kolumnami z wczytanego CSV"""
         self.nr_zal_combo.clear()
         self.nr_zal_combo.addItem("-- Wybierz kolumnę --", None)
         self.nr_zal_combo.addItems(columns)
@@ -65,12 +64,31 @@ class ConfigWidget(QGroupBox):
         self.skala_combo.clear()
         self.skala_combo.addItem("-- Wybierz skalę --", None)
         self.skala_combo.addItems(self.table_generator.get_scale_list())
+        # Dodaj separator i kolumny CSV
+        self.skala_combo.insertSeparator(self.skala_combo.count())
+        for col in columns:
+            self.skala_combo.addItem(f"[kolumna] {col}", f"__col__:{col}")
         self.skala_combo.setEnabled(True)
 
         self.width_input.setEnabled(True)
-
         self.preset_combo.setCurrentIndex(0)
         self.preset_combo.setEnabled(True)
+
+    def get_scale(self):
+        """Zwraca nazwę skali preset lub '__col__:nazwa_kolumny'"""
+        data = self.skala_combo.currentData()
+        if data:
+            return data
+        return self.skala_combo.currentText()
+
+    def is_scale_from_column(self) -> bool:
+        data = self.skala_combo.currentData()
+        return isinstance(data, str) and data.startswith("__col__:")
+
+    def get_scale_column(self) -> str | None:
+        if self.is_scale_from_column():
+            return self.skala_combo.currentData()[len("__col__:"):]
+        return None
 
     def is_valid(self):
         """Zwraca True jeśli wszystkie wymagane pola są wypełnione"""

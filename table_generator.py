@@ -13,6 +13,7 @@ class TableGenerator:
         self.margin = 20
         self.label_width = 300
         self.scale = 4
+        self.scale_column = None
         self.font = self._load_font()
 
         self.background_color_map = {}
@@ -22,6 +23,9 @@ class TableGenerator:
             "1:2500":4,
             "1:8000":1.25
         }
+
+    def set_scale_column(self, col: str | None):
+        self.scale_column = col
     
     def get_scale_list(self) -> List[str]:
         return list(self.scale_map.keys()) if self.scale_map else []
@@ -134,6 +138,14 @@ class TableGenerator:
         draw.text((int(text_x), int(text_y)), text, fill=fill, font=self.font)
     
     def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str) -> str:
+        # Jeśli skala pochodzi z kolumny, oblicz ją z pierwszego wiersza grupy
+        if self.scale_column and self.scale_column in group_df.columns:
+            raw_scale = group_df[self.scale_column].iloc[0]
+            try:
+                self.scale = 10000 / float(raw_scale)
+            except (ValueError, ZeroDivisionError):
+                pass  # zostaje poprzednia skala
+
         row_segments = self._prepare_row_segments(group_df)
         
         max_width = max(
@@ -146,19 +158,16 @@ class TableGenerator:
 
         img = Image.new("RGB", (img_width, img_height), "white")
         draw = ImageDraw.Draw(img)
-        
         self._draw_rows(draw, row_segments, max_width)
-        
+
         safe_nr_zal = str(nr_zal_value).replace('.', '_').replace('/', '_')
         filename = os.path.join(self.output_dir, f"{safe_nr_zal}.jpg")
         img.save(filename, quality=95)
-        
         return filename
-
+    
     def generate_all_tables(self, df: pd.DataFrame, nr_zal_column: str) -> List[str]:
         generated_files = []
         os.makedirs(self.output_dir, exist_ok=True)
-
 
         for nr_zal, group in df.groupby(nr_zal_column, sort=False):
             try:

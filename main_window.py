@@ -1,7 +1,4 @@
-from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QGroupBox, QPushButton, QLabel, QFileDialog, QMessageBox, QApplication
-)
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,QGroupBox, QPushButton, QLabel, QFileDialog, QMessageBox, QApplication)
 import sys
 from data_processor import DataProcessor
 from column_presets import ColumnPresets
@@ -138,6 +135,7 @@ class MainWindow(QMainWindow):
                 self.config_widget.get_nr_zal_col(),
                 column_mapping,
                 self.config_widget.get_dlugosci_col(),
+                scale_column=self.config_widget.get_scale_column(),
             )
             self._set_result_buttons_enabled(True)
             self.status_label.setText(
@@ -153,7 +151,7 @@ class MainWindow(QMainWindow):
             return
 
         file_path, _ = QFileDialog.getSaveFileName(self, "Zapisz plik CSV", "output.csv", "CSV Files (*.csv)")
-        
+
         if not file_path:
             return
 
@@ -175,20 +173,25 @@ class MainWindow(QMainWindow):
             enabled_columns = list(self.column_mapping_widget.get_column_mapping().keys())
             preset_name = self.config_widget.get_preset_name()
             bg_map, text_map = self.presets_manager.get_style_maps(preset_name=preset_name)
-            scale = self.config_widget.get_scale()
+            # scale = self.config_widget.get_scale()
             label_width = self.config_widget.get_label_width()
 
             self.table_generator.set_enabled_columns(enabled_columns)
             self.table_generator.set_color_maps(bg_map, text_map)
-            self.table_generator.set_scale(scale)
             self.table_generator.set_label_width(label_width)
+
+            if self.config_widget.is_scale_from_column():
+                self.table_generator.set_scale_column(self.config_widget.get_scale_column())
+            else:
+                self.table_generator.set_scale_column(None)
+                self.table_generator.set_scale(self.config_widget.get_scale())
 
             files = self.table_generator.generate_all_tables(
                 self.processed_df, self.config_widget.get_nr_zal_col()
             )
 
             if not files:
-                QMessageBox.critical(self, "Błąd", "Wygenerowano 0 tabel!\nSprawdź dane wejściowe i mapowanie kolumn.")
+                QMessageBox.critical(self, "Błąd", "\nSprawdź dane wejściowe i mapowanie kolumn.")
                 return
 
             self.status_label.setText(f"Wygenerowano {len(files)} tabel w folderze 'tabele'")
