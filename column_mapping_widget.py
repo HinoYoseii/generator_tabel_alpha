@@ -72,10 +72,6 @@ class ColumnMappingWidget(QScrollArea):
         
         col_layout.addLayout(controls)
 
-        # separator = QFrame()
-        # separator.setFrameShape(QFrame.Shape.HLine)
-        # col_layout.addWidget(separator)
-
         self._rows[col] = (combo, line_edit, btn_group)
 
         def on_mode_changed(btn_id: int) -> None:
@@ -90,7 +86,9 @@ class ColumnMappingWidget(QScrollArea):
         result: dict[str, str | None] = {}
         for col, (combo, line_edit, btn_group) in self._rows.items():
             if btn_group.checkedId() == 1:
-                result[col] = line_edit.text()
+                text = line_edit.text()
+                if text:
+                    result[col] = f"__const__:{text}"  # tag stałej wartości
             else:
                 mapped = combo.currentData()
                 if mapped is not None:

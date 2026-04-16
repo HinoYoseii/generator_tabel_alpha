@@ -62,37 +62,38 @@ class DataProcessor:
         result.append((display_val, current_sum))
         return result
     
-    def process_data(self, nr_zal_column: str,column_mapping: dict, length_column: str) -> pd.DataFrame:
-
+    def process_data(self, nr_zal_column: str, column_mapping: dict, length_column: str) -> pd.DataFrame:
         if self.df is None:
             raise ValueError("No data loaded")
-        
-        # kilometraz_column = column_mapping.get("Kilometraż")
-        
-        columns_needed = [nr_zal_column, length_column] + [
-            col for col in column_mapping.values() if col
-        ]
+
+        # Rozdziel stałe wartości od kolumn
+        const_mapping = {k: v[len("__const__:"):] for k, v in column_mapping.items() if v and v.startswith("__const__:")}
+        col_mapping = {k: v for k, v in column_mapping.items() if v and not v.startswith("__const__:")}
+
+        columns_needed = [nr_zal_column, length_column] + list(col_mapping.values())
         working_df = self.df[columns_needed].copy()
-        
+
         result_rows = []
-        
+
         for nr_zal, group in working_df.groupby(nr_zal_column, sort=False):
             group = group.reset_index(drop=True)
-            # total_length = group[length_column].sum()
-            
+            total_length = group[length_column].sum()
+
             aggregated = {}
-            for output_col, input_col in column_mapping.items():
-                if input_col:
-                    aggregated[output_col] = self.aggregate_consecutive_with_lengths(group, input_col, length_column)
-            
-            # if kilometraz_column:
-            #     aggregated["Odległości"] = aggregated.get("Kilometraż", [])
-            
+
+            # Agreguj kolumny normalnie
+            for output_col, input_col in col_mapping.items():
+                aggregated[output_col] = self.aggregate_consecutive_with_lengths(group, input_col, length_column)
+
+            # Stałe wartości jako jeden segment na całą długość
+            for output_col, const_val in const_mapping.items():
+                aggregated[output_col] = [(const_val, total_length)]
+
             max_rows = max(len(agg) for agg in aggregated.values()) if aggregated else 1
-            
+
             for i in range(max_rows):
                 row = {nr_zal_column: nr_zal}
-                
+
                 for output_col, agg_data in aggregated.items():
                     if output_col == "Odległości":
                         if i < len(agg_data):
@@ -104,7 +105,7 @@ class DataProcessor:
                     else:
                         row[output_col] = agg_data[i][0] if i < len(agg_data) else ''
                         row[f"{output_col} len"] = agg_data[i][1] if i < len(agg_data) else ''
-                
+
                 result_rows.append(row)
-        
+
         return pd.DataFrame(result_rows)
