@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Generator tabel pod przekroje")
-        self.setGeometry(100, 100, 900, 700)
+        self.setGeometry(400, 100, 1000, 800)
 
         self.data_processor = DataProcessor()
         self.table_generator = TableGenerator()
@@ -49,12 +49,11 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.config_widget)
 
         # Mapowanie kolumn
-        mapping_group = QGroupBox("3. Mapowanie kolumn")
-        mapping_layout = QVBoxLayout()
+        mapping_label = QLabel("3. Mapowanie kolumn")
+        mapping_label.setStyleSheet("font-weight: bold;")
+        main_layout.addWidget(mapping_label)
         self.column_mapping_widget = ColumnMappingWidget()
-        mapping_layout.addWidget(self.column_mapping_widget)
-        mapping_group.setLayout(mapping_layout)
-        main_layout.addWidget(mapping_group, stretch=1)
+        main_layout.addWidget(self.column_mapping_widget, stretch=1)
 
         # Przyciski akcji
         button_layout = QHBoxLayout()
@@ -111,7 +110,7 @@ class MainWindow(QMainWindow):
             return
 
         if self.config_widget.preset_combo.currentIndex() == 0:
-            self.column_mapping_widget.setup_columns([], [], clear_info=True)
+            self.column_mapping_widget.setup_columns([], [])
             self._validate_process_button()
             return
 
