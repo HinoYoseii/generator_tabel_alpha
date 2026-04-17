@@ -296,3 +296,22 @@ class ColumnPresets:
         
         return background_color_map, text_color_map
     
+    def get_preset_rows(self, preset_name: str) -> List[str]:
+        """Alias for get_preset_columns, used by PresetEditorDialog."""
+        return self.get_preset_columns(preset_name)
+
+    def save_preset(self, name: str, rows: List[str]):
+        """Create or overwrite a preset by name, preserving existing styles."""
+        existing = self.presets.get(name)
+        self.presets[name] = ColumnPreset(
+            name=name,
+            columns=rows,
+            styles=existing.styles if existing else None
+        )
+        self._save_to_file()
+
+    def delete_preset(self, name: str):
+        """Remove a preset by name and persist."""
+        if name in self.presets:
+            del self.presets[name]
+            self._save_to_file()

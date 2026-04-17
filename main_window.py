@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         self.config_widget.dlugosci_combo.currentIndexChanged.connect(self._validate_process_button)
         self.config_widget.skala_combo.currentIndexChanged.connect(self._validate_process_button)
         self.config_widget.preset_combo.currentIndexChanged.connect(self._apply_preset)
+        self.config_widget.preset_changed.connect(self._on_preset_editor_closed)
         main_layout.addWidget(self.config_widget)
 
         # Mapowanie kolumn
@@ -77,6 +78,13 @@ class MainWindow(QMainWindow):
         self.status_label.setWordWrap(True)
         self.status_label.setStyleSheet("padding: 10px")
         main_layout.addWidget(self.status_label)
+
+
+    def _on_preset_editor_closed(self):
+        """Refresh column mapping after preset editor closes."""
+        if self.data_processor.df is None:
+            return
+        self._apply_preset()
 
     def _set_status(self, text: str) -> None:
         self.status_label.setText(text)
