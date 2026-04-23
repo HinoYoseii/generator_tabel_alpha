@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QFormLayout, QComboBox, # type: ignore
                             QPushButton, QLabel, QCheckBox, QLineEdit, QApplication, 
                             QFileDialog, QGroupBox, QHBoxLayout, QScrollArea, QFrame,
-                            QListWidget, QAbstractItemView) # type: ignore
+                            QListWidget, QAbstractItemView, QMessageBox) # type: ignore
 from PyQt5.QtGui import QRegularExpressionValidator # type: ignore
 from PyQt5.QtCore import Qt, QRegularExpression # type: ignore
 
@@ -244,6 +244,52 @@ def remove_created_memory_layers():
             project.removeMapLayer(layer.id())
     
     print(f"Usunięto tymczasowe warstwy")
+
+def check_geometry_validity(polygon_layer_names):
+    """
+    Sprawdza poprawność geometrii warstw poligonowych.
+    W przypadku błędów dodaje do projektu tymczasową warstwę z miejscami błędów.
+    
+    :param polygon_layer_names: Lista nazw warstw poligonowych do sprawdzenia.
+    :return: True jeśli wszystkie geometrie są poprawne, False jeśli wykryto błędy.
+    """
+    all_valid = True
+    
+    for polygon_name in polygon_layer_names:
+        polygon_layer = QgsProject.instance().mapLayersByName(polygon_name)[0]  # type: ignore
+        
+        result = processing.run("qgis:checkvalidity", {  # type: ignore
+            'INPUT_LAYER': polygon_layer,
+            'METHOD': 2,
+            'IGNORE_RING_SELF_INTERSECTION': False,
+            'VALID_OUTPUT': 'TEMPORARY_OUTPUT',
+            'INVALID_OUTPUT': 'TEMPORARY_OUTPUT',
+            'ERROR_OUTPUT': 'TEMPORARY_OUTPUT'
+        })
+        
+        invalid_layer = result['INVALID_OUTPUT']
+        error_layer = result['ERROR_OUTPUT']
+        
+        invalid_count = invalid_layer.featureCount() if invalid_layer else 0
+        
+        if invalid_count > 0:
+            all_valid = False
+            
+            # Dodaj warstwę z błędnymi obiektami do projektu
+            invalid_layer.setName(f'BŁĘDNA_GEOMETRIA_{polygon_name}')
+            invalid_layer.renderer().symbol().setColor(  # type: ignore
+                QColor(220, 0, 0, 180)  # type: ignore
+            )
+            QgsProject.instance().addMapLayer(invalid_layer)  # type: ignore
+            
+            # Dodaj warstwę z lokalizacją błędów do projektu
+            if error_layer and error_layer.featureCount() > 0:
+                error_layer.setName(f'MIEJSCA_BŁĘDÓW_{polygon_name}')
+                QgsProject.instance().addMapLayer(error_layer)  # type: ignore
+            
+            print(f"Warstwa '{polygon_name}': wykryto {invalid_count} obiektów z niepoprawną geometrią.")
+    
+    return all_valid
 
 class Window(QMainWindow):
 
@@ -586,12 +632,43 @@ class Window(QMainWindow):
         # 1. Połącz wybrane warstwy poligonowe
         merged_polygon_layer = merge_polygon_layers(polygon_layers)
         
+        self.result_label.setText(f"Krok 1.5/5: Sprawdzanie poprawności geometrii warstw poligonowych...")
+        QApplication.processEvents()
+
+        # 1.5. Sprawdź poprawność geometrii warstw poligonowych
+        geometry_valid = check_geometry_validity(polygon_layers)
+        
+        if not geometry_valid:
+            # Usuń już dodaną scaloną warstwę
+            if self.delete_checkbox.isChecked():
+                remove_created_memory_layers()
+            
+            self.result_label.setText("Wykryto niepoprawną geometrię w warstwach poligonowych. Sprawdź projekt.")
+            self.result_label.setStyleSheet("color: #c00")
+            
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Niepoprawna geometria")
+            msg.setText("Wykryto obiekty z niepoprawną geometrią w wybranych warstwach poligonowych.")
+            msg.setInformativeText(
+                "Do projektu zostały dodane warstwy:\n"
+                "• BŁĘDNA_GEOMETRIA_[nazwa] – obiekty z błędami\n"
+                "• MIEJSCA_BŁĘDÓW_[nazwa] – lokalizacje błędów\n\n"
+                "Popraw geometrię (np. narzędziem 'Napraw geometrie') i uruchom ponownie."
+            )
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+            
+            self.submit_button.setEnabled(True)
+            return
+
         self.result_label.setText(f"Krok 2/5: Dzielenie warstwy linii '{line_layer_name}' połączoną warstwą poligonową...")
         QApplication.processEvents()
         
         # 2. Podziel wybraną warstwę linii za pomocą połączonej warstwy poligonowej
         split_result = split_lines(line_layer_name, merged_polygon_layer, self.selection_checkbox.isChecked())
-        
+
+
         if split_result == 0:
             self.result_label.setText(f"Nie wybrano przekrojów do podziału.")
             self.result_label.setStyleSheet("color: #c00")
