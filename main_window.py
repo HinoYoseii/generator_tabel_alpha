@@ -1,5 +1,4 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,QGroupBox, QPushButton, QLabel, QFileDialog, QMessageBox, QApplication)
-import sys
 from data_processor import DataProcessor
 from column_presets import ColumnPresets
 from table_generator import TableGenerator
@@ -207,10 +206,3 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Błąd generowania: {e}")
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
