@@ -2,15 +2,11 @@
     "presets": [
         {
             "name": "DBP",
-            "columns": [
-                "Charakterystyka drogi",
+            "rows": [
                 "Warunki geotechniczne",
                 "Warunki wodne",
                 "Grupy nośności",
                 "Poziom posadowienia",
-                "Poziom wzmocnienia",
-                "Przydatności gruntów/skał na potrzeby budownictwa drogowego",
-                "Przydatności gruntów/skał z wykopów do wykonania budowli ziemnych",
                 "Odległości",
                 "Kilometraż"
             ],
@@ -61,8 +57,7 @@
         },
         {
             "name": "DGI",
-            "columns": [
-                "Charakterystyka drogi",
+            "rows": [
                 "Warunki geomorfologiczne",
                 "Warunki hydrogeologiczne",
                 "Warunki geologiczne",
@@ -119,7 +114,7 @@
         },
         {
             "name": "HYDRO",
-            "columns": [
+            "rows": [
                 "Klasy podatności",
                 "Jednostka Hydrogeologiczna"
             ],

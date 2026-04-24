@@ -3,7 +3,7 @@ from typing import List, Optional
 
 class DataProcessor:
     def __init__(self):
-        self.df: Optional[pd.DataFrame] = None
+        self.df: pd.DataFrame = None
         self.input_columns: List[str] = []
         
     def load_csv(self, file_path: str) -> bool:

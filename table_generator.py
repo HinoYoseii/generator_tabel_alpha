@@ -8,7 +8,7 @@ import pandas as pd
 class TableGenerator:
     def __init__(self):
         self.output_dir = "tabele"
-        self.enabled_columns = []
+        self.enabled_rows = []
         self.row_height = 40
         self.font_size = 18
         self.margin = 20
@@ -31,8 +31,8 @@ class TableGenerator:
     def get_scale_list(self) -> List[str]:
         return list(self.scale_map.keys()) if self.scale_map else []
     
-    def set_enabled_columns(self, enabled_columns: list):
-        self.enabled_columns = enabled_columns
+    def set_enabled_rows(self, enabled_rows: list):
+        self.enabled_rows = enabled_rows
     
     def set_color_maps(self, background_colors:dict, text_colors: dict):
         self.background_color_map = background_colors
@@ -71,9 +71,9 @@ class TableGenerator:
             segments.append((str(name), length))
         return segments
     
-    def _prepare_row_segments(self, group_df: pd.DataFrame, enabled_columns: list[str]) -> Dict[str, List[Tuple[str, float]]]:
+    def _prepare_row_segments(self, group_df: pd.DataFrame, enabled_rows: list[str]) -> Dict[str, List[Tuple[str, float]]]:
         row_segments = {}
-        for col in enabled_columns:
+        for col in enabled_rows:
             label = f"{col}:"
             if col in group_df.columns and f"{col} len" in group_df.columns:
                 segments = self._clean_segments(group_df[col], group_df[f"{col} len"])
@@ -136,7 +136,7 @@ class TableGenerator:
         else:
             scale = self.scale_map.get(config.scale, config.scale)  # nazwa -> liczba lub liczba wprost
 
-        row_segments = self._prepare_row_segments(group_df, config.enabled_columns)
+        row_segments = self._prepare_row_segments(group_df, config.enabled_rows)
 
         max_width = max(
             (sum(l for _, l in segs) * scale for segs in row_segments.values() if segs),

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,QGroupBox, QPushButton, QLabel, QFileDialog, QMessageBox, QApplication)
 from data_processor import DataProcessor
-from column_presets import ColumnPresets
+from preset_manager import PresetManager
 from table_generator import TableGenerator
 from column_mapping_widget import ColumnMappingWidget
 from config_widget import ConfigWidget
@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
 
         self.data_processor = DataProcessor()
         self.table_generator = TableGenerator()
-        self.presets_manager = ColumnPresets()
+        self.presets_manager = PresetManager()
         self.processed_df = None
 
         self._setup_ui()
@@ -80,6 +80,9 @@ class MainWindow(QMainWindow):
     def _set_status(self, text: str):
         self.status_label.setText(text)
         QApplication.processEvents()
+    
+    def _validate_process_button(self):
+        self.process_button.setEnabled(self.config_widget.is_valid())
 
     def _load_csv(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Wybierz plik CSV", "", "CSV Files (*.csv);;All Files (*)")
@@ -103,13 +106,10 @@ class MainWindow(QMainWindow):
             return
 
         preset_type = self.config_widget.get_preset_name()
-        preset_columns = self.presets_manager.get_preset_columns(preset_type)
+        preset_columns = self.presets_manager.get_preset_rows(preset_type)
         self.column_mapping_widget.setup_columns(preset_columns, self.data_processor.get_columns())
         self._validate_process_button()
         self._set_status(f"Zastosowano preset {preset_type} z {len(preset_columns)} kolumnami\nUzupełnij mapowanie kolumn i kliknij 'Przetwórz dane'")
-
-    def _validate_process_button(self):
-        self.process_button.setEnabled(self.config_widget.is_valid())
 
     def _process_data(self):
         column_mapping = self.column_mapping_widget.get_column_mapping()

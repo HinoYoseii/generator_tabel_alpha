@@ -180,7 +180,7 @@ class ConfigWidget(QGroupBox):
         bg_map, text_map = self.presets_manager.get_style_maps(preset_name=preset_name)
 
         return TableConfig(
-            enabled_columns=list(column_mapping.keys()),
+            enabled_rows=list(column_mapping.keys()),
             bg_color_map=bg_map,
             text_color_map=text_map,
             label_width=self.get_label_width(),
