@@ -12,7 +12,7 @@ class DataProcessor:
             self.input_columns = list(self.df.columns)
             return True
         except Exception as e:
-            print(f"Error loading CSV: {e}")
+            print(f"Błąd wczytywania piku csv: {e}")
             return False
     
     def get_columns(self) -> List[str]:

@@ -70,56 +70,43 @@ class TableGenerator:
             segments.append((str(name), length))
         return segments
     
-    def _prepare_row_segments(self, group_df: pd.DataFrame) -> Dict[str, List[Tuple[str, float]]]:
-        """Przygotowuje segmenty dla wszystkich wierszy do rysowania"""
+    def _prepare_row_segments(self, group_df: pd.DataFrame, enabled_columns: list[str]) -> Dict[str, List[Tuple[str, float]]]:
         row_segments = {}
-        
-        columns_to_draw = []
-        
-        for col in self.enabled_columns:
-            columns_to_draw.append((f"{col}:", col))
-        
-        for label, col_name in columns_to_draw:
-            if col_name in group_df.columns and f"{col_name} len" in group_df.columns:
-                segments = self._clean_segments(
-                    group_df[col_name],
-                    group_df[f"{col_name} len"]
-                )
-                if segments: 
+        for col in enabled_columns:
+            label = f"{col}:"
+            if col in group_df.columns and f"{col} len" in group_df.columns:
+                segments = self._clean_segments(group_df[col], group_df[f"{col} len"])
+                if segments:
                     row_segments[label] = segments
-        
         return row_segments
     
-    def _draw_rows(self, draw: ImageDraw, row_segments: Dict[str, List], max_width: float):
-        """Rysuje wszystkie wiersze na obrazie"""
+    def _draw_rows(self, draw: ImageDraw, row_segments: Dict[str, List], max_width: float, config: TableConfig, scale: float):
         y = self.margin
         
         for row_name, segments in row_segments.items():
-            total_row_width = max_width
-
             draw.rectangle(
-                [self.margin, y, 
-                 self.margin + self.label_width + total_row_width, 
-                 y + self.row_height],
+                [self.margin, y,
+                self.margin + config.label_width + max_width,
+                y + self.row_height],
                 outline="black",
                 width=1
             )
             
-            self._draw_text(draw, row_name, 
-                          self.margin, y, 
-                          self.label_width, self.row_height)
+            self._draw_text(draw, row_name,
+                        self.margin, y,
+                        config.label_width, self.row_height)
             
-            x = self.margin + self.label_width
+            x = self.margin + config.label_width
             for name, length in segments:
                 if not name or length <= 0 or math.isnan(length):
                     continue
                 
-                width_px = int(length * self.scale)
+                width_px = int(length * scale)
                 
-                background_color = self.background_color_map.get(name, (255, 255, 255))
+                background_color = config.bg_color_map.get(name, (255, 255, 255))
                 draw.rectangle([x, y, x + width_px, y + self.row_height], outline="black", fill=background_color, width=1)
                 
-                text_color = self.text_color_map.get(name, (0, 0, 0))
+                text_color = config.text_color_map.get(name, (0, 0, 0))
                 self._draw_text(draw, str(name), x, y, width_px, self.row_height, fill=text_color)
                 
                 x += width_px
@@ -137,43 +124,46 @@ class TableGenerator:
         
         draw.text((int(text_x), int(text_y)), text, fill=fill, font=self.font)
     
-    def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str) -> str:
-        # Jeśli skala pochodzi z kolumny, oblicz ją z pierwszego wiersza grupy
-        if self.scale_column and self.scale_column in group_df.columns:
-            raw_scale = group_df[self.scale_column].iloc[0]
-            try:
-                self.scale = 10000 / float(raw_scale)
-            except (ValueError, ZeroDivisionError):
-                pass  # zostaje poprzednia skala
+    from table_config import TableConfig
 
-        row_segments = self._prepare_row_segments(group_df)
-        
+    def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str, config: TableConfig) -> str:
+        # Skala
+        if config.scale_column and config.scale_column in group_df.columns:
+            raw = group_df[config.scale_column].iloc[0]
+            try:
+                scale = 10000 / float(raw)
+            except (ValueError, ZeroDivisionError):
+                scale = self.scale  # fallback
+        else:
+            scale = self.scale_map.get(config.scale, config.scale)  # nazwa -> liczba lub liczba wprost
+
+        row_segments = self._prepare_row_segments(group_df, config.enabled_columns)
+
         max_width = max(
-            sum(length for _, length in segments) * self.scale if segments else 0
-            for segments in row_segments.values()
+            (sum(l for _, l in segs) * scale for segs in row_segments.values() if segs),
+            default=0
         )
-        
-        img_width = int(self.label_width + max_width + 2 * self.margin)
+
+        img_width = int(config.label_width + max_width + 2 * self.margin)
         img_height = len(row_segments) * self.row_height + 2 * self.margin
 
         img = Image.new("RGB", (img_width, img_height), "white")
         draw = ImageDraw.Draw(img)
-        self._draw_rows(draw, row_segments, max_width)
+        self._draw_rows(draw, row_segments, max_width, config, scale)
 
-        safe_nr_zal = str(nr_zal_value).replace('.', '_').replace('/', '_')
-        filename = os.path.join(self.output_dir, f"{safe_nr_zal}.jpg")
+        safe = str(nr_zal_value).replace('.', '_').replace('/', '_')
+        filename = os.path.join(self.output_dir, f"{safe}.jpg")
         img.save(filename, quality=95)
         return filename
-    
-    def generate_all_tables(self, df: pd.DataFrame, nr_zal_column: str) -> List[str]:
+
+    def generate_all_tables(self, df: pd.DataFrame, nr_zal_column: str, config: TableConfig) -> list[str]:
         generated_files = []
         os.makedirs(self.output_dir, exist_ok=True)
-
         for nr_zal, group in df.groupby(nr_zal_column, sort=False):
             try:
-                filename = self.generate_table(group, nr_zal)
-                generated_files.append(filename)
+                generated_files.append(self.generate_table(group, nr_zal, config))
             except Exception as e:
+                import traceback
                 print(f"Błąd przy generowaniu tabeli dla {nr_zal}: {e}")
-        
+                traceback.print_exc()
         return generated_files

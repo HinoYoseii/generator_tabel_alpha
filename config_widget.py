@@ -1,14 +1,15 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import pyqtSignal
+from table_config import TableConfig
 
 from preset_editor_dialog import PresetEditorDialog
 
 class ConfigWidget(QGroupBox):
     preset_changed = pyqtSignal()
-    def __init__(self, presets_manager, table_generator):
+    def __init__(self, presets_manager, scale_list: list[str]):
         super().__init__("2. Podstawowa konfiguracja")
         self.presets_manager = presets_manager
-        self.table_generator = table_generator
+        self.scale_list = scale_list
         self._setup_ui()
 
     def _setup_ui(self):
@@ -123,7 +124,7 @@ class ConfigWidget(QGroupBox):
 
         self.skala_combo.clear()
         self.skala_combo.addItem("-- Wybierz skalę --", None)
-        self.skala_combo.addItems(self.table_generator.get_scale_list())
+        self.skala_combo.addItems(self.scale_list)
         # Dodaj separator i kolumny CSV
         self.skala_combo.insertSeparator(self.skala_combo.count())
         for col in columns:
@@ -173,3 +174,17 @@ class ConfigWidget(QGroupBox):
 
     def get_preset_name(self):
         return self.preset_combo.currentText()
+    
+    def build_table_config(self, column_mapping: dict) -> "TableConfig":
+        from table_config import TableConfig
+        preset_name = self.get_preset_name()
+        bg_map, text_map = self.presets_manager.get_style_maps(preset_name=preset_name)
+
+        return TableConfig(
+            enabled_columns=list(column_mapping.keys()),
+            bg_color_map=bg_map,
+            text_color_map=text_map,
+            label_width=self.get_label_width(),
+            scale=None if self.is_scale_from_column() else self.get_scale(),
+            scale_column=self.get_scale_column(),
+        )
