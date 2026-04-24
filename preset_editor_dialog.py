@@ -42,7 +42,6 @@ class PresetEditorDialog(QDialog):
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setMaximumHeight(280)
         self.scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
 
         self.rows_container = QWidget()
