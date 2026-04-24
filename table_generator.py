@@ -1,8 +1,9 @@
-import math
 from PIL import Image, ImageDraw, ImageFont
-import pandas as pd
 from typing import Dict, List, Tuple
+from models import TableConfig
+import math
 import os
+import pandas as pd
 
 class TableGenerator:
     def __init__(self):
@@ -123,8 +124,6 @@ class TableGenerator:
         text_y = y + (height - text_height) / 2
         
         draw.text((int(text_x), int(text_y)), text, fill=fill, font=self.font)
-    
-    from table_config import TableConfig
 
     def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str, config: TableConfig) -> str:
         # Skala

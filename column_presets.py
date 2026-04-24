@@ -1,7 +1,7 @@
-from typing import List, Dict, Optional
-from dataclasses import dataclass
+from typing import List, Dict
 import json
 import os
+from models import ColumnPreset, ColumnStyle
 
 DEFAULT_CONFIG = {
     "presets": [
@@ -166,19 +166,6 @@ DEFAULT_CONFIG = {
         }
     ]
 }
-
-@dataclass
-class ColumnStyle:
-    """ Reprezentuje style kolumn """
-    text_color: Optional[List[int]] = None
-    background_color: Optional[List[int]] = None
-
-@dataclass
-class ColumnPreset:
-    """ Reprezentuje preset kolumn (w sumie to wierszy tabeli lol ale ok) """
-    name: str
-    columns: List[str]
-    styles: Optional[Dict[str, ColumnStyle]] = None
 
 class ColumnPresets: 
     def __init__(self, config_path: str = "data/PRESETS.json"):

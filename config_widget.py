@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import pyqtSignal
-from table_config import TableConfig
+from models import TableConfig
 
 from preset_editor_dialog import PresetEditorDialog
 
@@ -176,7 +176,6 @@ class ConfigWidget(QGroupBox):
         return self.preset_combo.currentText()
     
     def build_table_config(self, column_mapping: dict) -> "TableConfig":
-        from table_config import TableConfig
         preset_name = self.get_preset_name()
         bg_map, text_map = self.presets_manager.get_style_maps(preset_name=preset_name)
 
