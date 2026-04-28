@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
                 nr_zal_column=self.config_widget.get_nr_zal_col(),
                 column_mapping=column_mapping,
                 length_column=self.config_widget.get_dlugosci_col(),
-                scale_column=self.config_widget.get_scale_column(),
+                scale_column=self.config_widget.get_scale(),
             )
             
             self.export_button.setEnabled(True)
