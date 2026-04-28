@@ -45,7 +45,6 @@ class ConfigWidget(QGroupBox):
         self.width_input.setSuffix(" px")
         config_layout.addRow("Szerokość kolumn nagłówkowych:", self.width_input)
 
-        # Preset combo + edit/new buttons in a single row widget
         preset_row = QWidget()
         preset_h = QHBoxLayout(preset_row)
         preset_h.setContentsMargins(0, 0, 0, 0)
@@ -59,7 +58,8 @@ class ConfigWidget(QGroupBox):
 
         self.edit_preset_btn = QToolButton()
         self.edit_preset_btn.setText("✎")
-        self.edit_preset_btn.setFixedSize(28, 28)
+        self.edit_preset_btn.setStyleSheet("font-size: 18px;")
+        self.edit_preset_btn.setFixedSize(30, 30)
         self.edit_preset_btn.setToolTip("Edytuj wybrany preset")
         self.edit_preset_btn.clicked.connect(self._open_edit_preset)
         self.edit_preset_btn.setEnabled(False)
@@ -67,7 +67,7 @@ class ConfigWidget(QGroupBox):
 
         self.new_preset_btn = QToolButton()
         self.new_preset_btn.setText("+")
-        self.new_preset_btn.setFixedSize(28, 28)
+        self.new_preset_btn.setFixedSize(30, 30)
         self.new_preset_btn.setToolTip("Utwórz nowy preset")
         self.new_preset_btn.clicked.connect(self._open_new_preset)
         preset_h.addWidget(self.new_preset_btn)
@@ -91,14 +91,14 @@ class ConfigWidget(QGroupBox):
             self._refresh_preset_combo(select_name=dlg.get_saved_name())
         elif result == PresetEditorDialog.Deleted:
             self._refresh_preset_combo()
-        self.preset_changed.emit()  # always emit, main window decides what to do
+        self.preset_changed.emit()
 
     def _open_new_preset(self):
         dlg = PresetEditorDialog(self.presets_manager, preset_name=None, parent=self)
         result = dlg.exec()
         if result == QDialog.DialogCode.Accepted:
             self._refresh_preset_combo(select_name=dlg.get_saved_name())
-        self.preset_changed.emit()  # always emit
+        self.preset_changed.emit()
 
     def _refresh_preset_combo(self, select_name: str | None = None):
         self.preset_combo.blockSignals(True)

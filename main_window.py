@@ -128,6 +128,7 @@ class MainWindow(QMainWindow):
             
             self.export_button.setEnabled(True)
             self.generate_button.setEnabled(True)
+            QMessageBox.information(self, "Sukces", f"Przetworzono dane. Możesz eksportować dane lub generować tabele")
             self._set_status(f"Przetworzono dane: {len(self.processed_df)} wierszy\nMożesz eksportować lub generować tabele")
 
         except Exception as e:
@@ -142,7 +143,7 @@ class MainWindow(QMainWindow):
         try:
             self.processed_df.to_csv(file_path, index=False)
             QMessageBox.information(self, "Sukces", f"Dane wyeksportowane do {file_path}")
-            self._set_status(f"Wyeksportowano dane do {file_path}")
+            self._set_status(f"Dane wyeksportowane do {file_path}")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Błąd eksportu: {e}")
             self._set_status(f"Błąd eksportu: {e}")
