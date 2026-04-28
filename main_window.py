@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         self.config_widget.nr_zal_combo.currentIndexChanged.connect(self._validate_process_button)
         self.config_widget.dlugosci_combo.currentIndexChanged.connect(self._validate_process_button)
         self.config_widget.skala_combo.currentIndexChanged.connect(self._validate_process_button)
+        self.config_widget.width_input.valueChanged.connect(self._validate_process_button)
         self.config_widget.preset_combo.currentIndexChanged.connect(self._apply_preset)
         self.config_widget.preset_changed.connect(self._apply_preset)
         main_layout.addWidget(self.config_widget)
@@ -83,6 +84,8 @@ class MainWindow(QMainWindow):
     
     def _validate_process_button(self):
         self.process_button.setEnabled(self.config_widget.is_valid())
+        self.export_button.setEnabled(False)
+        self.generate_button.setEnabled(False)
 
     def _load_csv(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Wybierz plik CSV", "", "CSV Files (*.csv);;All Files (*)")

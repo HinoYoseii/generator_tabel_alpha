@@ -8,41 +8,18 @@ import pandas as pd
 class TableGenerator:
     def __init__(self):
         self.output_dir = "tabele"
-        self.enabled_rows = []
         self.row_height = 40
         self.font_size = 18
         self.margin = 20
-        self.label_width = 300
-        self.scale = 4
-        self.scale_column = None
         self.font = self._load_font()
-
-        self.background_color_map = {}
-        self.text_color_map = {}
         self.scale_map = {
             "1:1000":10,
             "1:2500":4,
             "1:8000":1.25
         }
 
-    def set_scale_column(self, col: str | None):
-        self.scale_column = col
-    
     def get_scale_list(self) -> List[str]:
         return list(self.scale_map.keys()) if self.scale_map else []
-    
-    def set_enabled_rows(self, enabled_rows: list):
-        self.enabled_rows = enabled_rows
-    
-    def set_color_maps(self, background_colors:dict, text_colors: dict):
-        self.background_color_map = background_colors
-        self.text_color_map = text_colors
-    
-    def set_label_width(self, label_width:int):
-        self.label_width = label_width
-
-    def set_scale(self, scale):
-        self.scale = self.scale_map.get(scale)
     
     def _load_font(self):
         """Ładuje czcionkę obsługującą polskie znaki"""
@@ -93,9 +70,7 @@ class TableGenerator:
                 width=1
             )
             
-            self._draw_text(draw, row_name,
-                        self.margin, y,
-                        config.label_width, self.row_height)
+            self._draw_text(draw, row_name, self.margin, y, config.label_width, self.row_height)
             
             x = self.margin + config.label_width
             for name, length in segments:
@@ -126,22 +101,21 @@ class TableGenerator:
         draw.text((int(text_x), int(text_y)), text, fill=fill, font=self.font)
 
     def generate_table(self, group_df: pd.DataFrame, nr_zal_value: str, config: TableConfig) -> str:
-        # Skala
-        if config.scale_column and config.scale_column in group_df.columns:
-            raw = group_df[config.scale_column].iloc[0]
+        if config.scale in group_df.columns:
+            raw = group_df[config.scale].iloc[0]
             try:
                 scale = 10000 / float(raw)
             except (ValueError, ZeroDivisionError):
-                scale = self.scale  # fallback
+                raise ValueError(
+                    f"Kolumna '{config.scale}' zawiera niepoprawne dane. "
+                    f"Oczekiwano wartości całkowitej większej od 0, ale znaleziono: '{raw}'. "
+                )
         else:
-            scale = self.scale_map.get(config.scale, config.scale)  # nazwa -> liczba lub liczba wprost
+            scale = self.scale_map.get(config.scale)
 
         row_segments = self._prepare_row_segments(group_df, config.enabled_rows)
 
-        max_width = max(
-            (sum(l for _, l in segs) * scale for segs in row_segments.values() if segs),
-            default=0
-        )
+        max_width = max((sum(l for _, l in segs) * scale for segs in row_segments.values() if segs), default=0)
 
         img_width = int(config.label_width + max_width + 2 * self.margin)
         img_height = len(row_segments) * self.row_height + 2 * self.margin

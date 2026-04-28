@@ -137,10 +137,10 @@ class ConfigWidget(QGroupBox):
         self.new_preset_btn.setEnabled(True)
 
     def get_scale(self):
-        """Zwraca nazwę skali preset lub '__col__:nazwa_kolumny'"""
+        """Zwraca nazwę skali preset lub nazwe kolumny ze skalą"""
         data = self.skala_combo.currentData()
         if data:
-            return data
+            return data[len("__col__:"):]
         return self.skala_combo.currentText()
 
     def is_scale_from_column(self) -> bool:
@@ -158,6 +158,7 @@ class ConfigWidget(QGroupBox):
             self.preset_combo.currentIndex() > 0
             and self.nr_zal_combo.currentIndex() > 0
             and self.dlugosci_combo.currentIndex() > 0
+            and self.skala_combo.currentIndex() > 0
         )
 
     def get_nr_zal_col(self):
@@ -165,9 +166,6 @@ class ConfigWidget(QGroupBox):
 
     def get_dlugosci_col(self):
         return self.dlugosci_combo.currentText()
-
-    def get_scale(self):
-        return self.skala_combo.currentText()
 
     def get_label_width(self):
         return self.width_input.value()
@@ -184,6 +182,6 @@ class ConfigWidget(QGroupBox):
             bg_color_map=bg_map,
             text_color_map=text_map,
             label_width=self.get_label_width(),
-            scale=None if self.is_scale_from_column() else self.get_scale(),
+            scale=self.get_scale(),
             scale_column=self.get_scale_column(),
         )
