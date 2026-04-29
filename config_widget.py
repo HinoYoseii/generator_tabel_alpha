@@ -20,7 +20,7 @@ class ConfigWidget(QGroupBox):
         self.nr_zal_combo.addItem("-- Wybierz kolumnę --", None)
         self.nr_zal_combo.setEnabled(False)
         self.nr_zal_combo.setToolTip("Kolumna po której będą grupowane tabelki.")
-        config_layout.addRow("Kolumna z numerami załączników/nazwami przekrojów:", self.nr_zal_combo)
+        config_layout.addRow("Kolumna z unikalną nazwą przekrojów:", self.nr_zal_combo)
 
         # Długości odcinków
         self.dlugosci_combo = QComboBox()
@@ -43,7 +43,7 @@ class ConfigWidget(QGroupBox):
         self.width_input.setMinimum(50)
         self.width_input.setValue(600)
         self.width_input.setSuffix(" px")
-        config_layout.addRow("Szerokość kolumn nagłówkowych:", self.width_input)
+        config_layout.addRow("Szerokość wierszy nagłówkowych:", self.width_input)
 
         preset_row = QWidget()
         preset_h = QHBoxLayout(preset_row)
@@ -143,15 +143,6 @@ class ConfigWidget(QGroupBox):
             return data[len("__col__:"):]
         return self.skala_combo.currentText()
 
-    def is_scale_from_column(self) -> bool:
-        data = self.skala_combo.currentData()
-        return isinstance(data, str) and data.startswith("__col__:")
-
-    def get_scale_column(self) -> str | None:
-        if self.is_scale_from_column():
-            return self.skala_combo.currentData()[len("__col__:"):]
-        return None
-
     def is_valid(self):
         """Zwraca True jeśli wszystkie wymagane pola są wypełnione"""
         return (
@@ -182,6 +173,5 @@ class ConfigWidget(QGroupBox):
             bg_color_map=bg_map,
             text_color_map=text_map,
             label_width=self.get_label_width(),
-            scale=self.get_scale(),
-            scale_column=self.get_scale_column(),
+            scale=self.get_scale()
         )

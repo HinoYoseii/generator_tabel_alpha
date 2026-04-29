@@ -7,8 +7,7 @@ class TableConfig:
     bg_color_map: dict
     text_color_map: dict
     label_width: int
-    scale: float | None        # None gdy skala pochodzi z kolumny
-    scale_column: str | None   # None gdy skala jest stała
+    scale: float | str | None
 
 @dataclass
 class RowStyle:
