@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.config_widget)
 
         # Mapowanie kolumn
-        mapping_label = QLabel("3. Mapowanie kolumn")
+        mapping_label = QLabel("3. Mapowanie wierszy")
         mapping_label.setStyleSheet("font-weight: bold;")
         main_layout.addWidget(mapping_label)
         self.column_mapping_widget = ColumnMappingWidget()
@@ -109,15 +109,21 @@ class MainWindow(QMainWindow):
             return
 
         preset_type = self.config_widget.get_preset_name()
-        preset_columns = self.presets_manager.get_preset_rows(preset_type)
-        self.column_mapping_widget.setup_columns(preset_columns, self.data_processor.get_columns())
+        preset_rows = self.presets_manager.get_preset_rows(preset_type)
+
+        if len(preset_rows) != len(set(preset_rows)):
+            QMessageBox.warning(None, "Błąd", "Wykryto w presecie powtarzające się nazwy wierszy. Edytuj preset lub wybierz inny.")
+            self._set_status(f"Wykryto w presecie powtarzające się nazwy wierszy. Edytuj preset lub wybierz inny.")
+            return
+    
+        self.column_mapping_widget.setup_columns(preset_rows, self.data_processor.get_columns())
         self._validate_process_button()
-        self._set_status(f"Zastosowano preset {preset_type} z {len(preset_columns)} kolumnami\nUzupełnij mapowanie kolumn i kliknij 'Przetwórz dane'")
+        self._set_status(f"Zastosowano preset {preset_type} z {len(preset_rows)} wierszami\nUzupełnij mapowanie i kliknij 'Przetwórz dane'")
 
     def _process_data(self):
         column_mapping = self.column_mapping_widget.get_column_mapping()
         if not column_mapping:
-            QMessageBox.warning(self, "Brak mapowania", "Musisz zmapować przynajmniej jedną kolumnę")
+            QMessageBox.warning(self, "Brak mapowania", "Musisz zmapować przynajmniej jeden wiersz")
             return
 
         try:
@@ -163,7 +169,7 @@ class MainWindow(QMainWindow):
                 config=config
             )
             if not files:
-                QMessageBox.critical(self, "Błąd", "\nNie udało się wygenerować tabel. Sprawdź dane wejściowe i mapowanie kolumn.")
+                QMessageBox.critical(self, "Błąd", "\nNie udało się wygenerować tabel. Sprawdź dane wejściowe i mapowanie wierszy.")
                 return
             QMessageBox.information(self, "Sukces", f"Wygenerowano {len(files)} tabel w folderze 'tabele'")
             self._set_status(f"Wygenerowano {len(files)} tabel w folderze 'tabele'")

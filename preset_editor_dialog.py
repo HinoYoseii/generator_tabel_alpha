@@ -123,6 +123,9 @@ class PresetEditorDialog(QDialog):
         if not rows:
             QMessageBox.warning(self, "Błąd", "Preset musi zawierać co najmniej jeden wiersz.")
             return
+        if len(rows) != len(set(rows)):
+            QMessageBox.warning(self, "Błąd", "Nazwy kolumn w presecie nie mogą się powtarzać.")
+            return
 
         existing = self.presets_manager.get_preset_names()
 
