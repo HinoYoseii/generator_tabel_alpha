@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,QGro
 from data_processor import DataProcessor
 from preset_manager import PresetManager
 from table_generator import TableGenerator
-from column_mapping_widget import ColumnMappingWidget
+from row_mapping_widget import RowMappingWidget
 from config_widget import ConfigWidget
 
 
@@ -50,8 +50,8 @@ class MainWindow(QMainWindow):
         mapping_label = QLabel("3. Mapowanie wierszy")
         mapping_label.setStyleSheet("font-weight: bold;")
         main_layout.addWidget(mapping_label)
-        self.column_mapping_widget = ColumnMappingWidget()
-        main_layout.addWidget(self.column_mapping_widget, stretch=1)
+        self.row_mapping_widget = RowMappingWidget()
+        main_layout.addWidget(self.row_mapping_widget, stretch=1)
 
         # Przyciski akcji
         button_layout = QHBoxLayout()
@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         if self.data_processor.df is None:
             return
         if self.config_widget.preset_combo.currentIndex() == 0:
-            self.column_mapping_widget.setup_columns([], [])
+            self.row_mapping_widget.setup_rows([], [])
             self._validate_process_button()
             return
 
@@ -116,13 +116,13 @@ class MainWindow(QMainWindow):
             self._set_status(f"Wykryto w presecie powtarzające się nazwy wierszy. Edytuj preset lub wybierz inny.")
             return
     
-        self.column_mapping_widget.setup_columns(preset_rows, self.data_processor.get_columns())
+        self.row_mapping_widget.setup_rows(preset_rows, self.data_processor.get_columns())
         self._validate_process_button()
         self._set_status(f"Zastosowano preset {preset_type} z {len(preset_rows)} wierszami\nUzupełnij mapowanie i kliknij 'Przetwórz dane'")
 
     def _process_data(self):
-        column_mapping = self.column_mapping_widget.get_column_mapping()
-        if not column_mapping:
+        row_mapping = self.row_mapping_widget.get_row_mapping()
+        if not row_mapping:
             QMessageBox.warning(self, "Brak mapowania", "Musisz zmapować przynajmniej jeden wiersz")
             return
 
@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
             self._set_status("Przetwarzanie danych...")
             self.processed_df = self.data_processor.process_data(
                 nr_zal_column=self.config_widget.get_nr_zal_col(),
-                column_mapping=column_mapping,
+                row_mapping=row_mapping,
                 length_column=self.config_widget.get_dlugosci_col(),
                 scale_column=self.config_widget.get_scale(),
             )
@@ -161,8 +161,8 @@ class MainWindow(QMainWindow):
         self._set_status("Generowanie tabel...")
 
         try:
-            column_mapping = self.column_mapping_widget.get_column_mapping()
-            config = self.config_widget.build_table_config(column_mapping)
+            row_mapping = self.row_mapping_widget.get_row_mapping()
+            config = self.config_widget.build_table_config(row_mapping)
             files = self.table_generator.generate_all_tables(
                 df=self.processed_df,
                 nr_zal_column=self.config_widget.get_nr_zal_col(),
